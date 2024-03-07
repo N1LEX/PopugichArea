@@ -7,10 +7,10 @@ from django.db import models, transaction
 from django.db.models import QuerySet
 
 
-class User(AbstractUser):
+class User(models.Model):
     class RoleChoices(models.TextChoices):
-        ADMIN = 'admin', 'admin'
-        MANAGER = 'manager', 'manager'
+        ADMIN = 'ADMIN', 'ADMIN'
+        MANAGER = 'MANAGER', 'MANAGER'
         TESTER = 'TESTER', 'TESTER'
         DEVELOPER = 'DEVELOPER', 'DEVELOPER'
 

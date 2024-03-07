@@ -6,8 +6,8 @@ from django.db import models
 
 class User(AbstractUser):
     class RoleChoices(models.TextChoices):
-        ADMIN = 'admin', 'admin'
-        MANAGER = 'manager', 'manager'
+        ADMIN = 'ADMIN', 'ADMIN'
+        MANAGER = 'MANAGER', 'MANAGER'
         TESTER = 'TESTER', 'TESTER'
         DEVELOPER = 'DEVELOPER', 'DEVELOPER'
 
