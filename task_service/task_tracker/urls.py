@@ -1,7 +1,8 @@
-from django.urls import path
+from rest_framework.routers import SimpleRouter
 
-from task_tracker.views import TasksView
+from task_tracker.views import TaskViewSet
 
-urlpatterns = [
-    path('tasks/', TasksView.as_view()),
-]
+router = SimpleRouter()
+router.register(r'tasks', TaskViewSet, basename='task')
+
+urlpatterns = router.urls

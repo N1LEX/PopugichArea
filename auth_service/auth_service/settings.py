@@ -23,6 +23,22 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates']
+        ,
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 ROOT_URLCONF = 'auth_service.urls'
 WSGI_APPLICATION = 'auth_service.wsgi.application'
 DATABASES = {
@@ -56,7 +72,6 @@ SIMPLE_JWT = {
 }
 DJOSER = {
     'SERIALIZERS': {
-        'user_create': 'app.serializers.CustomUserSerializer',
         'current_user': 'app.serializers.CustomUserSerializer',
         'user': 'app.serializers.CustomUserSerializer',
     }
