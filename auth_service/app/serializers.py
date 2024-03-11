@@ -1,9 +1,9 @@
-from djoser.serializers import UserSerializer
+from djoser import serializers as djoser_serializers
 
 from app.models import User
 
 
-class CustomUserSerializer(UserSerializer):
+class UserSerializer(djoser_serializers.UserSerializer):
     class Meta:
         model = User
         fields = ('public_id', 'username', 'full_name', 'role', 'email')

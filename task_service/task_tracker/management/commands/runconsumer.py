@@ -1,5 +1,3 @@
-import logging
-
 from django.core.management import BaseCommand
 
 from task_tracker.consumer import KafkaConsumer

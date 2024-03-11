@@ -5,7 +5,7 @@ from confluent_kafka import Consumer
 from task_tracker.tasks import create_user
 
 MAP_EVENT_HANDLERS = {
-    'Users': {
+    'user-stream': {
         'Created': create_user,
     }
 }
@@ -14,7 +14,7 @@ MAP_EVENT_HANDLERS = {
 class KafkaConsumer:
     def __init__(self):
         self._consumer = Consumer({'bootstrap.servers': 'broker:29092', 'group.id': 'popug'})
-        self._consumer.subscribe(['Users'])
+        self._consumer.subscribe(['user-stream'])
 
     def consume(self):
         try:
@@ -24,9 +24,6 @@ class KafkaConsumer:
                     continue
                 topic, key, data = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
                 handler = MAP_EVENT_HANDLERS[topic][key]
-                print(data)
                 handler.delay(**data)
-        except Exception as e:
-            print(str(e))
         finally:
             self._consumer.close()

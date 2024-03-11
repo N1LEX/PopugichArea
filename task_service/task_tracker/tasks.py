@@ -5,7 +5,7 @@ from task_tracker.models import Task, User
 
 
 @app.task
-def shuffle_tasks():
+def assign_tasks():
     users = User.workers()
     for task in Task.opened():
         assign_task.delay(task.id, random.choice(users).id)

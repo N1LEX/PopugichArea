@@ -65,8 +65,9 @@ services:
 
   task_consumer:
     build: .
+    restart: on-failure
     working_dir: /task_service
-    command: python manage.py run_consumer
+    command: python manage.py runconsumer
     volumes:
       - ./task_service:/task_service
     depends_on:

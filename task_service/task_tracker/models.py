@@ -15,7 +15,10 @@ class User(models.Model):
     username = models.CharField(max_length=40, editable=False)
     public_id = models.UUIDField(default=uuid4, unique=True)
     role = models.CharField(max_length=9, choices=RoleChoices.choices)
-    full_name = models.CharField(max_length=40, null=True)
+    full_name = models.CharField(max_length=40, blank=True, null=True)
+
+    def __str__(self):
+        return self.username
 
     @staticmethod
     def workers() -> QuerySet:
@@ -41,7 +44,7 @@ class Task(models.Model):
         self.user_id = user_id
         self.save()
 
-    def make_completed(self):
+    def complete(self):
         self.status = Task.StatusChoices.COMPLETED
         self.save()
 
