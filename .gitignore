@@ -1,0 +1,6 @@
+/task_service/.venv/
+/auth_service/.idea/
+/auth_service/.venv/
+/task_service/.idea/
+/auth_service/db.sqlite3
+/task_service/db.sqlite3
