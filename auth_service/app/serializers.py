@@ -1,10 +1,11 @@
-from djoser import serializers as djoser_serializers
+from rest_framework import serializers
 
 from app.models import User
 
 
-class UserSerializer(djoser_serializers.UserSerializer):
+class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
-        fields = ('public_id', 'username', 'full_name', 'role', 'email')
+        fields = ('public_id', 'password', 'username', 'full_name', 'role', 'email')
         extra_kwargs = {'password': {'write_only': True}}

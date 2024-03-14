@@ -129,7 +129,7 @@ AUTH_URL = 'http://auth:8000/authenticate/'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'task_service.authentication.Authentication',
+        'accounting_service.authentication.Authentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.AllowAny',

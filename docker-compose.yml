@@ -22,6 +22,17 @@ services:
     depends_on:
       - broker
 
+  accounting:
+    build: .
+    working_dir: /accounting_service
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./accounting_service:/accounting_service
+    ports:
+      - "8003:8000"
+    depends_on:
+      - broker
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     ports:
@@ -49,11 +60,11 @@ services:
     restart: on-failure
     image: "redis:alpine"
 
-  celery:
+  task_celery:
     restart: on-failure
     build: .
     working_dir: /popug_area/task_service
-    command: bash -c "celery -A task_service worker --loglevel=INFO"
+    command: bash -c "celery -A task_service worker -P solo --loglevel=DEBUG"
     environment:
       DJANGO_SETTINGS_MODULE: 'task_service.settings'
       CELERY_BROKER_URL: 'redis://redis:6379/0'
@@ -62,6 +73,20 @@ services:
       - redis
     volumes:
       - ./task_service:/popug_area/task_service
+
+  accounting_celery:
+    restart: on-failure
+    build: .
+    working_dir: /popug_area/accounting_service
+    command: bash -c "celery -A accounting_service worker -P solo --loglevel=DEBUG"
+    environment:
+      DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
+      CELERY_BROKER_URL: 'redis://redis:6379/1'
+      CELERY_RESULT_BACKEND: 'redis://redis:6379/1'
+    depends_on:
+      - redis
+    volumes:
+      - ./accounting_service:/popug_area/accounting_service
 
   task_consumer:
     build: .
@@ -72,4 +97,15 @@ services:
       - ./task_service:/task_service
     depends_on:
       - task
+      - broker
+
+  accounting_consumer:
+    build: .
+    restart: on-failure
+    working_dir: /accounting_service
+    command: python manage.py runconsumer
+    volumes:
+      - ./accounting_service:/accounting_service
+    depends_on:
+      - accounting
       - broker

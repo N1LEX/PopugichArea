@@ -7,15 +7,17 @@ from django.db import models
 class User(models.Model):
 
     class RoleChoices(models.TextChoices):
-        ADMIN = 'ADMIN', 'ADMIN'
-        MANAGER = 'MANAGER', 'MANAGER'
-        TESTER = 'TESTER', 'TESTER'
-        DEVELOPER = 'DEVELOPER', 'DEVELOPER'
+        ADMIN = 'admin', 'admin'
+        MANAGER = 'manager', 'manager'
+        TESTER = 'tester', 'tester'
+        DEVELOPER = 'developer', 'developer'
+        ACCOUNTANT = 'accountant', 'accountant'
 
     username = models.CharField(max_length=40)
     public_id = models.UUIDField()
     role = models.CharField(max_length=40)
     full_name = models.CharField(max_length=40, blank=True, null=True)
+    email = models.CharField(max_length=40, null=True, blank=True)
 
     def __str__(self):
         return self.username
@@ -35,7 +37,7 @@ class Task(models.Model):
     public_id = models.UUIDField()
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
     description = models.CharField(max_length=255)
-    opened_price = models.PositiveSmallIntegerField(default=random_price)
+    assigned_price = models.PositiveSmallIntegerField(default=random_price)
     completed_price = models.PositiveSmallIntegerField(default=random_price)
     status = models.CharField(max_length=40)
     date = models.DateField()
@@ -43,7 +45,6 @@ class Task(models.Model):
 
 class Account(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    public_id = models.UUIDField(default=uuid4)
     balance = models.IntegerField(default=0)
 
 

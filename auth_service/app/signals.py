@@ -13,4 +13,5 @@ producer = Producer({'bootstrap.servers': 'broker:29092'})
 @receiver(post_save, sender=User)
 def user_created(instance, created, **kwargs):
     popug_data = UserSerializer(instance).data
-    producer.produce(topic='user-stream', value=json.dumps(popug_data).encode('utf-8'))
+    producer.produce(topic='user-stream', key='created', value=json.dumps(popug_data).encode('utf-8'))
+    producer.flush()
