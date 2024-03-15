@@ -3,8 +3,9 @@ from rest_framework import serializers
 from accounting.models import Account, Log
 
 
-class AdminAccountingSerializer(serializers.Serializer):
-    earning_amount = serializers.IntegerField()
+class EarningStatsSerializer(serializers.Serializer):
+    sum = serializers.IntegerField()
+    date = serializers.DateField()
 
 
 class LogSerializer(serializers.ModelSerializer):

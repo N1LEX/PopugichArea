@@ -1,7 +1,6 @@
 import random
-from uuid import uuid4
 
-from django.db import models, transaction
+from django.db import models
 from django.db.models import QuerySet, F
 
 
@@ -23,9 +22,6 @@ class User(models.Model):
     @staticmethod
     def workers() -> QuerySet:
         return User.objects.exclude(role__in=(User.RoleChoices.ADMIN, User.RoleChoices.MANAGER))
-
-    def send_mail_profit(self, amount):
-        return amount
 
     def __str__(self):
         return self.username
@@ -50,7 +46,9 @@ class Task(models.Model):
     status = models.CharField(max_length=40)
     date = models.DateField()
 
-    @transaction.atomic
+    class Meta:
+        ordering = ['-id']
+
     def handle_completed(self):
         self.status = Task.StatusChoices.COMPLETED
         self.save()
@@ -63,7 +61,6 @@ class Task(models.Model):
             purpose=f'Начисление за выполненную задачу ({self.public_id}). Сумма: {self.completed_price}.',
         )
 
-    @transaction.atomic
     def handle_assigned(self):
         account = self.user.account
         account.balance = F('balance') - self.assigned_price
@@ -72,6 +69,7 @@ class Task(models.Model):
             account=account,
             amount=self.assigned_price,
             purpose=f'Списание за назначенную задачу ({self.public_id}). Сумма: {self.assigned_price}.',
+            date=self.date,
         )
 
 
@@ -79,7 +77,6 @@ class Account(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     balance = models.IntegerField(default=0)
 
-    @transaction.atomic
     def payout(self):
         Log.objects.create(
             account=self,
@@ -94,3 +91,7 @@ class Log(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='logs')
     amount = models.IntegerField()
     purpose = models.CharField(max_length=255)
+    date = models.DateField()
+
+    class Meta:
+        ordering = ['-id']
