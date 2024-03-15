@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaConsumer:
+
     def __init__(self):
         self._consumer = Consumer({'bootstrap.servers': 'broker:29092', 'group.id': 'accounting'})
         self._consumer.subscribe(['user-stream', 'tasks'])

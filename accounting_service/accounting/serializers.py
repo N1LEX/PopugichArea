@@ -12,7 +12,7 @@ class LogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Log
-        fields = ('amount', 'purpose')
+        fields = ('amount', 'date', 'purpose')
 
 
 class UserAccountingSerializer(serializers.ModelSerializer):

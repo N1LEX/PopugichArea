@@ -58,6 +58,7 @@ class Task(models.Model):
         Log.objects.create(
             account=account,
             amount=self.completed_price,
+            date=self.date,
             purpose=f'Начисление за выполненную задачу ({self.public_id}). Сумма: {self.completed_price}.',
         )
 
