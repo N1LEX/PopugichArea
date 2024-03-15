@@ -1,6 +1,4 @@
-from django.db import models
-from django.db.models import Sum, F
-from django.db.models.functions import Coalesce
+from django.db.models import Sum
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -25,4 +23,6 @@ class AccountingView(APIView):
             return Task.objects.aggregate(
                 earning_amount=Sum('assigned_price', default=0) + Sum('completed_price', default=0),
             )
-        return Account.objects.filter(user=self.request.user).prefetch_related('logs').get()
+        qs = Account.objects.filter(user=self.request.user).prefetch_related('logs')
+        print(qs.get().logs.values())
+        return qs.get()

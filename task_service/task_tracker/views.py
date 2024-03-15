@@ -24,6 +24,6 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Response({'message': 'OK'})
 
     @action(detail=False, name="My Tasks")
-    def popug_tasks(self, request):
-        self.queryset = self.queryset.filter(user=self.request.user)
+    def my(self, request):
+        self.queryset = self.queryset.filter(user=self.request.user, status=Task.StatusChoices.ASSIGNED)
         return super().list(request)

@@ -1,6 +1,6 @@
-from django.db.models import F
+from django.core.mail import send_mail
 
-from accounting.models import User, Task, Account, Log
+from accounting.models import User, Task, Account
 from accounting_service.celery import app
 
 
@@ -23,32 +23,36 @@ def handle_assigned_task(**task_data):
         public_id=task_data['public_id'],
         defaults={
             'user': user,
+            'status': 'assigned',
             'description': task_data['description'],
             'date': task_data['date'],
         }
     )
-    account = task.user.account
-    account.balance = F('balance') - task.assigned_price
-    account.save()
-    Log.objects.create(
-        account=account,
-        amount=task.assigned_price,
-        purpose=f'Списание за назначенную задачу ({task.public_id}). Сумма: {task.assigned_price}.',
-    )
+    task.handle_assigned()
     return {'message': 'OK'}
 
 
 @app.task
 def handle_completed_task(**task_data):
     task = Task.objects.get(public_id=task_data['public_id'])
-    task.status = Task.StatusChoices.COMPLETED
-    task.save()
-    account = task.user.account
-    account.balance = F('balance') + task.completed_price
-    account.save()
-    Log.objects.create(
-        account=account,
-        amount=task.completed_price,
-        purpose=f'Начисление за выполненную задачу ({task.public_id}). Сумма: {task.completed_price}.',
-    )
+    task.handle_completed()
     return {'message': 'OK'}
+
+
+@app.task
+def payout_profits():
+    workers_with_profit = User.workers().filter(account__balance__gt=0).select_related('account')
+    for worker in workers_with_profit:
+        send_mail_profit.delay(worker.email, worker.account.balance)
+        worker.account.payout()
+
+
+@app.task
+def send_mail_profit(email, amount):
+    send_mail(
+        subject="Выплата за выполненные задачи",
+        message=amount,
+        from_email="accounting@popug.inc",
+        recipient_list=[email],
+        fail_silently=False,
+    )
