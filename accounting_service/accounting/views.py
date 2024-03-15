@@ -7,6 +7,11 @@ from accounting.serializers import UserAccountingSerializer, EarningStatsSeriali
 
 
 class AccountingView(APIView):
+    """
+    Аккаунтинг: кто сколько денег заработал
+    Админам и менеджерам доступна статистика заработанным деньгам по дням
+    Остальным доступна только информация о текущем балансе и лог операций
+    """
 
     def get(self, request, *kwargs):
         queryset = self.get_queryset()
@@ -24,5 +29,5 @@ class AccountingView(APIView):
         if self.request.user.role in (User.RoleChoices.ADMIN, User.RoleChoices.ACCOUNTANT):
             return Task.objects.values('date').annotate(
                 sum=Sum('assigned_price', default=0) + Sum('completed_price', default=0),
-            )
+            ).order_by('-date')
         return Account.objects.filter(user=self.request.user).prefetch_related('logs').get()
