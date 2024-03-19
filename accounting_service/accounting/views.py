@@ -30,4 +30,4 @@ class AccountingView(APIView):
             return Task.objects.values('date').annotate(
                 sum=Sum('assigned_price', default=0) + Sum('completed_price', default=0),
             ).order_by('-date')
-        return Account.objects.filter(user=self.request.user).prefetch_related('logs').get()
+        return Account.objects.filter(user=self.request.user).prefetch_related('transactions').get()

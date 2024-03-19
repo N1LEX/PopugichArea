@@ -3,15 +3,16 @@ import logging
 
 from confluent_kafka import Consumer
 
-from accounting.tasks import create_user, handle_assigned_task, handle_completed_task
+from accounting import tasks
 
 MAP_EVENT_HANDLERS = {
     'user-stream': {
-        'created': create_user,
+        'created': tasks.create_user,
     },
-    'tasks': {
-        'assigned': handle_assigned_task,
-        'completed': handle_completed_task,
+    'task-lifecycle': {
+        'created': tasks.handle_created_task,
+        'assigned': tasks.handle_assigned_task,
+        'completed': tasks.handle_completed_task,
     }
 }
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from accounting.models import Account, Log
+from accounting.models import Account, Transaction
 
 
 class EarningStatsSerializer(serializers.Serializer):
@@ -8,16 +8,16 @@ class EarningStatsSerializer(serializers.Serializer):
     date = serializers.DateField()
 
 
-class LogSerializer(serializers.ModelSerializer):
+class TransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Log
-        fields = ('amount', 'purpose')
+        model = Transaction
+        fields = ('type', 'display_amount', 'purpose', 'datetime')
 
 
 class UserAccountingSerializer(serializers.ModelSerializer):
-    logs = LogSerializer(many=True, read_only=True)
+    transactions = TransactionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Account
-        fields = ('balance', 'logs')
+        fields = ('balance', 'transactions')

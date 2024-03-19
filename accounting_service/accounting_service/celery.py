@@ -6,8 +6,8 @@ app.conf.update(broker_url='redis://redis:6379/1')
 app.autodiscover_tasks(['accounting'])
 
 app.conf.beat_schedule = {
-    'payout-profits': {
-        'task': 'accounting.tasks.payout_profits',
-        'schedule': crontab(hour=0, minute=0),
+    'close-billing-cycles': {
+        'task': 'accounting.tasks.run_close_billing_cycles',
+        'schedule': crontab(hour=23, minute=59),
     },
 }
