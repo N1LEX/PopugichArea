@@ -7,14 +7,15 @@ from django.db.models import QuerySet
 
 class User(models.Model):
     class RoleChoices(models.TextChoices):
-        ADMIN = 'ADMIN', 'ADMIN'
-        MANAGER = 'MANAGER', 'MANAGER'
-        TESTER = 'TESTER', 'TESTER'
-        DEVELOPER = 'DEVELOPER', 'DEVELOPER'
+        ADMIN = 'admin', 'admin'
+        MANAGER = 'manager', 'manager'
+        TESTER = 'tester', 'tester'
+        DEVELOPER = 'developer', 'developer'
+        ACCOUNTANT = 'accountant', 'accountant'
 
-    username = models.CharField(max_length=40, editable=False)
-    public_id = models.UUIDField(default=uuid4, unique=True)
-    role = models.CharField(max_length=9, choices=RoleChoices.choices)
+    username = models.CharField(max_length=40)
+    public_id = models.UUIDField()
+    role = models.CharField(max_length=40)
     full_name = models.CharField(max_length=40, blank=True, null=True)
 
     def __str__(self):
@@ -27,18 +28,18 @@ class User(models.Model):
 
 class Task(models.Model):
     class StatusChoices(models.TextChoices):
-        OPEN = 'OPEN', 'OPEN'
-        COMPLETED = 'COMPLETED', 'COMPLETED'
+        ASSIGNED = 'assigned', 'assigned'
+        COMPLETED = 'completed', 'completed'
 
     public_id = models.UUIDField(default=uuid4, unique=True, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
     description = models.CharField(max_length=255)
-    status = models.CharField(max_length=9, choices=StatusChoices.choices, default=StatusChoices.OPEN)
+    status = models.CharField(max_length=9, choices=StatusChoices.choices, default=StatusChoices.ASSIGNED)
     date = models.DateField(auto_now_add=True, editable=False)
 
     @staticmethod
-    def opened() -> QuerySet:
-        return Task.objects.filter(status=Task.StatusChoices.OPEN)
+    def assigned() -> QuerySet:
+        return Task.objects.filter(status=Task.StatusChoices.ASSIGNED)
 
     def assign(self, user_id):
         self.user_id = user_id

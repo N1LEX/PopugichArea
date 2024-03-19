@@ -6,7 +6,7 @@ from task_tracker.tasks import create_user
 
 MAP_EVENT_HANDLERS = {
     'user-stream': {
-        'Created': create_user,
+        'created': create_user,
     }
 }
 

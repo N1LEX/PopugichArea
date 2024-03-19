@@ -1,14 +1,18 @@
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from rest_framework import permissions
-from rest_framework.generics import GenericAPIView
+from djoser.views import UserViewSet as DjoserUserViewSet
+from rest_framework import permissions, status
+from rest_framework.generics import GenericAPIView, CreateAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import views
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from app.models import User
+from app.serializers import UserSerializer
 
 
 class SigninView(APIView):
@@ -18,7 +22,12 @@ class SigninView(APIView):
         return render(request, 'signin.html')
 
 
-class AuthenticateUserView(GenericAPIView):
+class UserCreateView(CreateAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = UserSerializer
+
+
+class AuthenticateAppView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request: Request) -> Response:
