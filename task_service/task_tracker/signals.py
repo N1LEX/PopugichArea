@@ -14,5 +14,3 @@ producer = Producer({'bootstrap.servers': 'broker:29092'})
 def task_flow(instance, created, **kwargs):
     task_data = TaskProducerSerializer(instance).data
     producer.produce('tasks', key=instance.status, value=json.dumps(task_data).encode('utf-8'))
-    producer.flush()
-

@@ -26,7 +26,7 @@ def create_user(**user_data):
 def handle_created_task(**task_data):
     user = User.objects.get(public_id=task_data['user_id'])
     task = Task.objects.create(**task_data, user=user)
-    EventStreaming.account_transaction(
+    EventStreaming.new_account_transaction(
         transaction=user.account.apply_withdraw_transaction(
             amount=-task.assigned_price,
             purpose=f'Withdraw for a assigned task #{task.public_id}',
@@ -37,7 +37,7 @@ def handle_created_task(**task_data):
 @app.task
 def handle_assigned_task(**task_data):
     task = Task.objects.get(public_id=task_data['public_id'])
-    EventStreaming.account_transaction(
+    EventStreaming.new_account_transaction(
         transaction=task.user.account.apply_withdraw_transaction(
             amount=-task.assigned_price,
             purpose=f'Withdraw for a assigned task #{task.public_id}',
@@ -48,7 +48,7 @@ def handle_assigned_task(**task_data):
 @app.task
 def handle_completed_task(**task_data):
     task = Task.objects.get(public_id=task_data['public_id'])
-    EventStreaming.account_transaction(
+    EventStreaming.new_account_transaction(
         transaction=task.user.account.apply_deposit_transaction(
             amount=task.completed_price,
             purpose=f'Deposit for a completed task #{task.public_id}',

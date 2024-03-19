@@ -1,7 +1,7 @@
 import json
 import logging
 
-from confluent_kafka import Consumer
+from confluent_kafka import Consumer, Message
 
 from accounting import tasks
 
@@ -28,8 +28,11 @@ class KafkaConsumer:
     def consume(self):
         try:
             while True:
-                msg = self._consumer.poll(1)
-                if msg is None or msg.error():
+                msg: Message = self._consumer.poll(1)
+                if msg is None:
+                    continue
+                if msg.error():
+                    # TODO requeue msg back to topic?
                     continue
                 topic, key, data = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
                 print(topic, key, data)
