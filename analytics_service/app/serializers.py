@@ -1,11 +1,10 @@
 from enum import Enum
 from typing import List
-from uuid import uuid4
 
 import attrs
-from django.utils.timezone import now
+from rest_framework import serializers
 
-from accounting import validators
+from analytics_service.app import validators
 
 
 @attrs.define(kw_only=True)
@@ -27,24 +26,28 @@ class TaskV1:
     assigned_price: int = attrs.field(default=None)
     completed_price: int = attrs.field(default=None)
 
+    @classmethod
+    def from_dict(cls, data: dict) -> 'TaskV1':
+        return cls(**data)
+
 
 @attrs.define(kw_only=True)
 class AccountV1:
     public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
     user_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
-    balance: int = attrs.field(validator=attrs.validators.instance_of(int), default=0)
+    balance: int = attrs.field(validator=attrs.validators.instance_of(int))
 
 
 @attrs.define(kw_only=True)
 class TransactionV1:
-    public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str, default=uuid4())
+    public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
     account_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
     billing_cycle_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
     type: str = attrs.field(validator=attrs.validators.instance_of(str))
-    debit: int = attrs.field(validator=attrs.validators.instance_of(int), default=0)
-    credit: int = attrs.field(validator=attrs.validators.instance_of(int), default=0)
+    debit: int = attrs.field(validator=attrs.validators.instance_of(int))
+    credit: int = attrs.field(validator=attrs.validators.instance_of(int))
     purpose: str = attrs.field(validator=attrs.validators.instance_of(str))
-    datetime: str = attrs.field(validator=validators.DatetimeValidator, converter=str, default=str(now()))
+    datetime: str = attrs.field(validator=validators.DatetimeValidator, converter=str)
 
     display_amount: int = attrs.field(default=0)
 
@@ -53,26 +56,17 @@ class TransactionV1:
         return [cls(**transaction) for transaction in data]
 
 
-@attrs.define(kw_only=True)
-class AccountStateV1:
-    balance: int
-    transactions: List[TransactionV1] = attrs.field(converter=TransactionV1.from_list)
-
-
-@attrs.define(kw_only=True)
-class ManagementEarningV1:
-    sum: int = attrs.field()
+@attrs.define
+class DayStatsV1:
+    management_earning: int = attrs.field()
+    negative_balances: int = attrs.field()
     date: str = attrs.field(converter=str)
-
-    @classmethod
-    def from_list(cls, data: list[dict]) -> List['ManagementEarningV1']:
-        return [cls(**earning) for earning in data]
+    most_expensive_task: TaskV1 = attrs.field(converter=TaskV1.from_dict)
 
 
-@attrs.define(kw_only=True)
-class ManagementEarningStatsV1:
-    current_date: ManagementEarningV1 = attrs.field(converter=ManagementEarningV1)
-    history: List[ManagementEarningV1] = attrs.field(converter=ManagementEarningV1.from_list)
+class MostExpensiveTaskRequest(serializers.ModelSerializer):
+    start_date: str = attrs.field(validator=validators.DatetimeValidator)
+    end_date: str = attrs.field(validator=validators.DatetimeValidator)
 
 
 class SerializerNames(Enum):
@@ -80,8 +74,7 @@ class SerializerNames(Enum):
     TASK = 'Task'
     TRANSACTION = 'Transaction'
     ACCOUNT = 'Account'
-    ACCOUNT_STATE = 'AccountState'
-    MANAGEMENT_EARNING_STATS = 'ManagementEarningStats'
+    DayStats = 'DayStats'
 
 
 SERIALIZERS = {
@@ -90,8 +83,7 @@ SERIALIZERS = {
         SerializerNames.TASK: TaskV1,
         SerializerNames.TRANSACTION: TransactionV1,
         SerializerNames.ACCOUNT: AccountV1,
-        SerializerNames.ACCOUNT_STATE: AccountStateV1,
-        SerializerNames.MANAGEMENT_EARNING_STATS: ManagementEarningStatsV1,
+        SerializerNames.DayStats: DayStatsV1,
     }
 }
 

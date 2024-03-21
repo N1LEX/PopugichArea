@@ -2,13 +2,13 @@ import random
 from datetime import date
 from uuid import uuid4
 
+import attrs
 from django.db import models, transaction
-from django.db.models import QuerySet, F
+from django.db.models import QuerySet
 from django.utils.functional import cached_property
 
 
 class User(models.Model):
-
     class RoleChoices(models.TextChoices):
         ADMIN = 'admin', 'admin'
         MANAGER = 'manager', 'manager'
@@ -16,11 +16,19 @@ class User(models.Model):
         DEVELOPER = 'developer', 'developer'
         ACCOUNTANT = 'accountant', 'accountant'
 
-    username = models.CharField(max_length=40)
     public_id = models.UUIDField()
+    username = models.CharField(max_length=40)
     role = models.CharField(max_length=40)
     full_name = models.CharField(max_length=40, blank=True, null=True)
     email = models.CharField(max_length=40, null=True, blank=True)
+
+    @property
+    def is_manager(self) -> bool:
+        return self.role in (self.RoleChoices.ADMIN, self.RoleChoices.MANAGER)
+
+    @property
+    def is_worker(self) -> bool:
+        return self.role in (self.RoleChoices.TESTER, self.RoleChoices.DEVELOPER, self.RoleChoices.ACCOUNTANT)
 
     @staticmethod
     def workers() -> QuerySet:
@@ -34,11 +42,10 @@ class User(models.Model):
         return self.username
 
 
-def random_price():
-    return random.randint(1, 1000)
-
-
 class Task(models.Model):
+    @staticmethod
+    def random_price():
+        return random.randint(1, 1000)
 
     class StatusChoices(models.TextChoices):
         OPENED = 'opened', 'opened'
@@ -47,7 +54,6 @@ class Task(models.Model):
 
     public_id = models.UUIDField()
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
-    title = models.CharField(max_length=40)
     description = models.CharField(max_length=255)
     assigned_price = models.PositiveSmallIntegerField(default=random_price)
     completed_price = models.PositiveSmallIntegerField(default=random_price)
@@ -68,59 +74,29 @@ class BillingCycle(models.Model):
     end_date = models.DateField(default=date.today)
     status = models.CharField(max_length=6, default=StatusChoices.OPENED)
 
+    @classmethod
+    def new(cls, user: User, start: date = None, end: date = None) -> 'BillingCycle':
+        return cls.objects.create(user=user, start_date=start, end_date=end)
+
     def close(self):
         self.status = self.StatusChoices.CLOSED
         self.save()
 
-    @classmethod
-    def open(cls, user: User, start: date, end: date) -> 'BillingCycle':
-        return cls.objects.create(
-            user=user,
-            start_date=date,
-            end_date=date,
-        )
-
 
 class Account(models.Model):
+    public_id = models.UUIDField(default=uuid4)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     balance = models.IntegerField(default=0)
 
     @transaction.atomic
-    def apply_withdraw_transaction(self, amount: int, purpose: str) -> 'Transaction':
+    def create_transaction(self, transaction_model) -> 'Transaction':
         _transaction = Transaction.objects.create(
-            account=self,
-            billing_cycle=self.user.billing_cycle,
-            credit=amount,
-            type=Transaction.TypeChoices.WITHDRAW,
-            purpose=purpose,
+            **attrs.asdict(transaction_model, filter=attrs.filters.exclude('display_amount'))
         )
-        self.balance += -_transaction.credit
-        self.save()
-        return _transaction
-
-    @transaction.atomic
-    def apply_deposit_transaction(self, amount: int, purpose: str) -> 'Transaction':
-        _transaction = Transaction.objects.create(
-            account=self,
-            billing_cycle=self.user.billing_cycle,
-            debit=amount,
-            type=Transaction.TypeChoices.DEPOSIT,
-            purpose=purpose,
-        )
-        self.balance -= _transaction.debit
-        self.save()
-        return _transaction
-
-    @transaction.atomic
-    def apply_payment_transaction(self, amount: int, purpose: str) -> 'Transaction':
-        _transaction = Transaction.objects.create(
-            account=self,
-            billing_cycle=self.user.billing_cycle,
-            debit=amount,
-            type=Transaction.TypeChoices.DEPOSIT,
-            purpose=purpose,
-        )
-        self.balance = 0
+        if _transaction.type in (_transaction.TypeChoices.WITHDRAW, _transaction.TypeChoices.PAYMENT):
+            self.balance += -_transaction.credit
+        else:
+            self.balance -= _transaction.debit
         self.save()
         return _transaction
 
@@ -144,7 +120,7 @@ class Transaction(models.Model):
         ordering = ['-id']
 
     @property
-    def display_amount(self):
+    def display_amount(self) -> int:
         if self.type == self.TypeChoices.WITHDRAW:
             return -self.credit
         return self.debit

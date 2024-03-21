@@ -1,14 +1,16 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.request import Request
 from rest_framework.response import Response
 
-from task_tracker.models import Task
 from task_tracker import permissions
-from task_tracker.serializers import TaskSerializer
-from task_tracker.tasks import assign_tasks
+from task_tracker.models import Task
+from task_tracker.serializers import get_serializer, SerializerNames, TaskV1
+from task_tracker.streaming import EventVersions
+from task_tracker.tasks import assign_tasks, task_completed
 
 
-class TaskViewSet(viewsets.ModelViewSet):
+class TaskTrackerView(viewsets.ModelViewSet):
     """
     Таск-трекер: содержит список задач
     Создавать задачи может кто угодно
@@ -23,20 +25,26 @@ class TaskViewSet(viewsets.ModelViewSet):
         /task/{id}/complete: отметить задачу завершенной
     """
     queryset = Task.objects.all()
-    serializer_class = TaskSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = TaskV1
+
+    def get_serializer_class(self):
+        version = self.request.query_params.get('version', EventVersions.v1)
+        return get_serializer(SerializerNames.TASK, version)
 
     @action(detail=False, name="Assign Tasks", permission_classes=[permissions.IsAdminOrManager])
-    def assign(self, request):
-        assign_tasks.delay()
+    def assign(self, request: Request):
+        version = request.query_params.get('version', EventVersions.v1)
+        assign_tasks.delay(version)
         return Response({'message': 'tasks assign has started'})
 
     @action(detail=True,  name="Complete Task", permission_classes=[permissions.IsAssigned])
-    def complete(self, request, pk=None):
+    def complete(self, request: Request, pk=None):
         self.get_object().complete()
+        event_version = request.query_params.get('event_version', EventVersions.v1)
+        task_completed.delay(event_version)
         return Response({'message': 'OK'})
 
     @action(detail=False, name="My Tasks")
-    def my(self, request):
+    def my(self, request: Request):
         self.queryset = self.queryset.filter(user=self.request.user, status=Task.StatusChoices.ASSIGNED)
         return super().list(request)

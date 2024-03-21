@@ -17,6 +17,7 @@ class User(models.Model):
     public_id = models.UUIDField()
     role = models.CharField(max_length=40)
     full_name = models.CharField(max_length=40, blank=True, null=True)
+    email = models.CharField(max_length=40, null=True, blank=True)
 
     def __str__(self):
         return self.username
@@ -28,15 +29,24 @@ class User(models.Model):
 
 class Task(models.Model):
     class StatusChoices(models.TextChoices):
+        CREATED = 'created', 'created'
         ASSIGNED = 'assigned', 'assigned'
         COMPLETED = 'completed', 'completed'
 
-    public_id = models.UUIDField(default=uuid4, unique=True, editable=False)
+    public_id = models.UUIDField(primary_key=True, default=uuid4,)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
-    title = models.CharField(max_length=25)
     description = models.CharField(max_length=255)
     status = models.CharField(max_length=9, choices=StatusChoices.choices, default=StatusChoices.ASSIGNED)
     date = models.DateField(auto_now_add=True, editable=False)
+
+    def to_dict(self):
+        return {
+            'public_id': self.public_id,
+            'user': self.user_id,
+            'description': self.description,
+            'status': self.status,
+            'date': self.date
+        }
 
     @staticmethod
     def assigned() -> QuerySet:

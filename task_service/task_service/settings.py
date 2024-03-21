@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from confluent_kafka import Producer
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-htu0#5l42cj1%czt1b93t%bi%m^q2q39kk#m@kjm5mls435pvx'
 DEBUG = True
@@ -57,6 +59,8 @@ REST_FRAMEWORK = {
         'task_service.authentication.Authentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.Authenticated',
     ),
 }
+
+producer = Producer({'bootstrap.servers': 'broker:29092'})

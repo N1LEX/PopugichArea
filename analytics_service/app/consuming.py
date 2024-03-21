@@ -1,29 +1,32 @@
 import json
-import logging
 
 from confluent_kafka import Consumer, Message
 
-from accounting import tasks
-
-MAP_EVENT_HANDLERS = {
-    'user-stream': {
-        'created': tasks.create_user,
-    },
-    'task-lifecycle': {
-        'created': tasks.handle_created_task,
-        'assigned': tasks.handle_assigned_task,
-        'completed': tasks.handle_completed_task,
-    }
-}
-
-logger = logging.getLogger(__name__)
+from analytics_service.app import tasks
 
 
 class KafkaConsumer:
+    EVENT_HANDLERS = {
+        'user-stream': {
+            'created': tasks.create_user,
+        },
+        'task-lifecycle': {
+            'created': tasks.create_task,
+            'assigned': tasks.update_task,
+            'completed': tasks.update_task,
+        },
+        'account-streaming': {
+            'created': tasks.create_account,
+            'updated': tasks.update_account,
+        },
+        'transaction-streaming': {
+            'created': tasks.create_transaction,
+        }
+    }
 
     def __init__(self):
-        self._consumer = Consumer({'bootstrap.servers': 'broker:29092', 'group.id': 'accounting'})
-        self._consumer.subscribe(['user-stream', 'tasks'])
+        self._consumer = Consumer({'bootstrap.servers': 'broker:29092', 'group.id': 'analytics'})
+        self._consumer.subscribe(['user-stream', 'task-lifecycle', 'account-streaming'])
 
     def consume(self):
         try:
@@ -41,7 +44,7 @@ class KafkaConsumer:
                 #     SchemaRegistry.validate_event(event=data, version='v1')
                 # except SchemaValidationError as e:
                 #     logger.exception(e)
-                handler = MAP_EVENT_HANDLERS[topic][key]
-                handler.delay(**data)
+                handler = self.EVENT_HANDLERS[topic][key]
+                handler.delay(data)
         finally:
             self._consumer.close()
