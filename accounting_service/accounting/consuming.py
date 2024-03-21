@@ -2,14 +2,21 @@ import json
 import logging
 
 from confluent_kafka import Consumer, Message
+from django.db.models import TextChoices
 
 from accounting import tasks
 
+
+class Topics(TextChoices):
+    USER_STREAM = 'user-stream'
+    TASK_LIFECYCLE = 'task-lifecycle'
+
+
 EVENT_HANDLERS = {
-    'user-stream': {
+    Topics.USER_STREAM: {
         'created': tasks.create_user,
     },
-    'task-lifecycle': {
+    Topics.TASK_LIFECYCLE: {
         'created': tasks.handle_created_task,
         'assigned': tasks.handle_assigned_task,
         'completed': tasks.handle_completed_task,

@@ -28,11 +28,12 @@ class UserCreateView(CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         event_version = request.query_params.get('version', EventVersions.v1)
-        serializer = get_serializer(SerializerNames.USER, event_version)
-        user_model = serializer(**request.data)
-        User.objects.create(**attrs.asdict(user_model))
+        user_signup_serializer = get_serializer(SerializerNames.USER_SIGNUP, event_version)
+        user_signup_model = user_signup_serializer(**request.data)
+        User.objects.create(**attrs.asdict(user_signup_model))
         event_streaming: EventStreaming = get_event_streaming(event_version)
-        event_streaming.user_created(user_model)
+        event_streaming.user_created(user_signup_model)
+        return Response(data=attrs.asdict(user_signup_model, filter=attrs.filters.exclude('password')))
 
 
 class AuthenticateAppView(GenericAPIView):

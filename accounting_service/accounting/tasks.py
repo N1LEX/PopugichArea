@@ -66,7 +66,7 @@ def handle_assigned_task(event):
     event_streaming.transaction_created(transaction_model)
 
 
-@app.task
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
 def handle_completed_task(event):
     event_version = event['event_version']
@@ -96,7 +96,7 @@ def close_billing_cycles(event_version: str):
         close_billing_cycle.delay(user.id, event_version)
 
 
-@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 7, 'countdown': 1})
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
 def close_billing_cycle(user_id: int, event_version: str):
     send_report = False

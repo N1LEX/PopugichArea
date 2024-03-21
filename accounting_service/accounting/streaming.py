@@ -1,26 +1,26 @@
 import json
 import typing
-from enum import Enum
 from uuid import uuid4
 
 import attrs
 from django.conf import settings
+from django.db.models import TextChoices
 from django.utils.timezone import now
 
 
-class EventVersions(Enum):
+class EventVersions(TextChoices):
     v1 = '1'
 
 
-class EventNames(Enum):
+class EventNames(TextChoices):
     TRANSACTION_CREATED = 'TransactionCreated'
     ACCOUNT_CREATED = 'AccountCreated'
     ACCOUNT_UPDATED = 'AccountUpdated'
 
 
-class Topics(Enum):
-    TRANSACTION_STREAMING = 'transaction-streaming'
-    ACCOUNT_STREAMING = 'account-streaming'
+class Topics(TextChoices):
+    TRANSACTION_STREAM = 'transaction-stream'
+    ACCOUNT_STREAM = 'account-stream'
 
 
 @attrs.define(kw_only=True)
@@ -45,7 +45,7 @@ class EventStreaming:
             data=attrs.asdict(transaction, filter=attrs.filters.exclude('display_amount'))
         )
         settings.PRODUCER.produce(
-            topic=Topics.TRANSACTION_STREAMING,
+            topic=Topics.TRANSACTION_STREAM,
             key=transaction.type,
             value=json.dumps(event).encode('utf-8'),
         )
@@ -57,7 +57,7 @@ class EventStreaming:
             data=attrs.asdict(account),
         )
         settings.PRODUCER.produce(
-            topic=Topics.ACCOUNT_STREAMING,
+            topic=Topics.ACCOUNT_STREAM,
             key='created',
             value=json.dumps(event).encode('utf-8'),
         )
@@ -69,7 +69,7 @@ class EventStreaming:
             data=attrs.asdict(account),
         )
         settings.PRODUCER.produce(
-            topic=Topics.ACCOUNT_STREAMING,
+            topic=Topics.ACCOUNT_STREAM,
             key='updated',
             value=json.dumps(event).encode('utf-8'),
         )
@@ -79,7 +79,7 @@ class EventStreaming:
 
 
 EVENT_STREAMING_VERSIONS = {
-    'v1': EventStreaming(version='v1')
+    EventVersions.v1: EventStreaming(version='v1')
 }
 
 

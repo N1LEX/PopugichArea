@@ -1,7 +1,7 @@
-from enum import Enum
 from typing import List
 
 import attrs
+from django.db.models import TextChoices
 from rest_framework import serializers
 
 from app import validators
@@ -83,7 +83,7 @@ class MostExpensiveTaskRequest(serializers.ModelSerializer):
     )
 
 
-class SerializerNames(Enum):
+class SerializerNames(TextChoices):
     USER = 'User'
     TASK = 'Task'
     TRANSACTION = 'Transaction'

@@ -1,5 +1,5 @@
-from enum import Enum
+from django.db.models import TextChoices
 
 
-class EventVersions(Enum):
+class EventVersions(TextChoices):
     v1 = 'v1'

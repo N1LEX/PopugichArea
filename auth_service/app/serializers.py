@@ -1,31 +1,34 @@
-from enum import Enum
+from uuid import uuid4
 
 import attrs
+from django.db.models import TextChoices
 
-from app import validators
+from streaming import EventVersions
 
 
 @attrs.define(kw_only=True)
 class UserV1:
-    public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
+    public_id: str = attrs.field(converter=str, default=uuid4())
     username: str = attrs.field(validator=attrs.validators.instance_of(str))
     full_name: str = attrs.field(default=None)
     role: str = attrs.field(validator=attrs.validators.instance_of(str))
     email: str = attrs.field(validator=attrs.validators.instance_of(str))
 
 
-class SerializerNames(Enum):
+@attrs.define(kw_only=True)
+class UserSignUpV1(UserV1):
+    password: str = attrs.field(converter=str, validator=attrs.validators.min_len(6))
+
+
+class SerializerNames(TextChoices):
     USER = 'User'
-    TASK = 'Task'
-    TRANSACTION = 'Transaction'
-    ACCOUNT = 'Account'
-    DayStats = 'DayStats'
-    AllStats = 'AllStats'
+    USER_SIGNUP = 'UserSignUp'
 
 
 SERIALIZERS = {
-    'v1': {
+    EventVersions.v1: {
         SerializerNames.USER: UserV1,
+        SerializerNames.USER_SIGNUP: UserSignUpV1,
     }
 }
 

@@ -1,18 +1,18 @@
 import json
 import typing
-from enum import Enum
 from uuid import uuid4
 
 import attrs
 from django.conf import settings
+from django.db.models import TextChoices
 from django.utils.timezone import now
 
 
-class EventVersions(Enum):
+class EventVersions(TextChoices):
     v1 = 'v1'
 
 
-class Topics(Enum):
+class Topics(TextChoices):
     TASK_LIFECYCLE = 'task-lifecycle'
 
 
@@ -48,7 +48,7 @@ class EventStreaming:
 
 
 EVENT_STREAMING_VERSIONS = {
-    '1': EventStreaming(version='1')
+    'v1': EventStreaming(version='v1')
 }
 
 

@@ -1,25 +1,33 @@
 import json
 
 from confluent_kafka import Consumer, Message
+from django.db.models import TextChoices
 
 from app import tasks
 
 
+class Topics(TextChoices):
+    USER_STREAM = 'user-stream'
+    TASK_LIFECYCLE = 'task-lifecycle'
+    TRANSACTION_STREAM = 'transaction-stream'
+    ACCOUNT_STREAM = 'account-stream'
+
+
 class KafkaConsumer:
     EVENT_HANDLERS = {
-        'user-stream': {
+        Topics.USER_STREAM: {
             'created': tasks.create_user,
         },
-        'task-lifecycle': {
+        Topics.TASK_LIFECYCLE: {
             'created': tasks.create_task,
             'assigned': tasks.update_task,
             'completed': tasks.update_task,
         },
-        'account-streaming': {
+        Topics.ACCOUNT_STREAM: {
             'created': tasks.create_account,
             'updated': tasks.update_account,
         },
-        'transaction-streaming': {
+        Topics.TRANSACTION_STREAM: {
             'created': tasks.create_transaction,
         }
     }

@@ -1,7 +1,7 @@
-from enum import Enum
 from uuid import uuid4
 
 import attrs
+from django.db.models import TextChoices
 
 from task_tracker import validators
 
@@ -24,7 +24,7 @@ class TaskV1:
     date: str = attrs.field(validator=validators.DatetimeValidator, converter=str)
 
 
-class SerializerNames(Enum):
+class SerializerNames(TextChoices):
     USER = 'User'
     TASK = 'Task'
 

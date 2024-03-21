@@ -1,22 +1,22 @@
 import json
 import typing
-from enum import Enum
 from uuid import uuid4
 
 import attrs
 from django.conf import settings
+from django.db.models import TextChoices
 from django.utils.timezone import now
 
 
-class EventVersions(Enum):
-    v1 = '1'
+class EventVersions(TextChoices):
+    v1 = 'v1'
 
 
-class EventNames(Enum):
+class EventNames(TextChoices):
     USER_CREATED = 'UserCreated'
 
 
-class Topics(Enum):
+class Topics(TextChoices):
     USER_STREAMING = 'user-streaming'
 
 
@@ -27,7 +27,7 @@ class Event:
     data: typing.Union[typing.List, typing.Dict] = attrs.field()
     event_id: str = attrs.field(default=uuid4(), converter=str)
     event_time: str = attrs.field(default=now(), converter=str)
-    producer: str = attrs.field(default='accounting-service')
+    producer: str = attrs.field(default='auth-service')
 
 
 class EventStreaming:
@@ -36,11 +36,14 @@ class EventStreaming:
         self.version = version
 
     def user_created(self, user):
-        event = self.get_event(EventNames.USER_CREATED, attrs.asdict(user))
+        event = self.get_event(
+            EventNames.USER_CREATED,
+            attrs.asdict(user, filter=attrs.filters.exclude('password'))
+        )
         settings.PRODUCER.produce(
             topic=Topics.USER_STREAMING,
             key='created',
-            value=json.dumps(event).encode('utf-8'),
+            value=json.dumps(attrs.asdict(event)).encode('utf-8'),
         )
 
     def get_event(self, name: str, data: dict):
@@ -48,7 +51,7 @@ class EventStreaming:
 
 
 EVENT_STREAMING_VERSIONS = {
-    'v1': EventStreaming(version='v1')
+    EventVersions.v1: EventStreaming(version='v1')
 }
 
 
