@@ -1,45 +1,49 @@
+import attrs
 from django.db.models import Max
 from rest_framework.decorators import action
-from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.request import Request
-from rest_framework.viewsets import GenericViewSet
+from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
-from analytics_service.app.models import DayStats
-from analytics_service.app.permissions import IsManager
-from analytics_service.app.serializers import MostExpensiveTaskRequest, get_serializer, SerializerNames
-from analytics_service.app.streaming import EventVersions
+from app.models import Stats
+from app.permissions import IsManager
+from app.serializers import MostExpensiveTaskRequest, get_serializer, SerializerNames
+from app.streaming import EventVersions
 
 
-class CurrentDayStatsView(RetrieveModelMixin, GenericViewSet):
-    queryset = DayStats.objects.latest('date')
+class CurrentDayStatsView(ViewSet):
     permission_classes = [IsManager]
 
-    def get_serializer_class(self):
+    def get(self, request, *kwargs):
         version = self.request.query_params.get('version', EventVersions.v1)
-        return get_serializer(SerializerNames.DayStats, version)
+        serializer = get_serializer(SerializerNames.DayStats, version)
+        day_stats = Stats.objects.latest('date')
+        return Response(data=attrs.asdict(serializer(day_stats)))
 
 
-class AllDaysStatsView(ListModelMixin, GenericViewSet):
+class AllStatsView(ViewSet):
     """
     Общая статистика по всем дням.
     Запросить самую дорогую:
         Example: /must_expensive_task?start_date=2023-03-01&end_date=2023-03-20
     """
-    queryset = DayStats.objects.select_related('task').all()
+    queryset = Stats.objects.select_related('most_expensive_task')
     permission_classes = [IsManager]
 
-    def get_serializer_class(self):
+    def list(self, request, *args, **kwargs):
         version = self.request.query_params.get('version', EventVersions.v1)
-        return get_serializer(SerializerNames.DayStats, version)
+        serializer = get_serializer(SerializerNames.AllStats, version)
+        return Response(serializer(self.queryset))
 
     @action(detail=False)
-    def must_expensive_task(self, request: Request):
-        serializer = MostExpensiveTaskRequest(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return self.queryset().filter(
+    def most_expensive_task(self, request: Request):
+        request_serializer = MostExpensiveTaskRequest(**request.data)
+        most_expensive_task = self.queryset().get(
             date__range=(
-                serializer.validated_data['start_date'],
-                serializer.validated_data['end_date']
+                request_serializer.start_date,
+                request_serializer.end_date,
             ),
-            most_expensive_task__completed_price=Max('most_expensive_task__completed_price')
-        ).aggregate(must_expensive_task=Max('must_expensive_task'))
+            most_expensive_task__completed_price=Max('most_expensive_task__completed_price'),
+        )
+        task_serializer = get_serializer(SerializerNames.TASK, request_serializer.version)
+        return Response(data=task_serializer(most_expensive_task))

@@ -1,63 +1,53 @@
+import attrs
 from django.db import transaction
 
-from accounting.models import Task
-from accounting_service.celery import app
-from analytics_service.app.models import Account, DayStats
-from analytics_service.app.serializers import (
-    UserSerializerV1,
-    AccountSerializerV1,
-    TransactionSerializerV1,
-    TaskSerializerV1,
-)
+from analytic_service.celery import app
+from app.models import Account, User, Transaction, Task, Stats
+from app.serializers import get_serializer, SerializerNames
 
 
 @app.task
-def create_user(event_data):
-    serializer = UserSerializerV1(data=event_data['data'])
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
+def create_user(event):
+    serializer = get_serializer(SerializerNames.USER, event['event_version'])
+    user_model = serializer(**event['data'])
+    User.objects.create(**attrs.asdict(user_model))
 
 
 @app.task
-def create_account(event_data):
-    serializer = AccountSerializerV1(data=event_data['data'])
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
+def create_account(event):
+    serializer = get_serializer(SerializerNames.ACCOUNT, event['event_version'])
+    account_model = serializer(**event['data'])
+    Account.objects.create(**attrs.asdict(account_model))
 
 
 @app.task
-def update_account(event_data):
-    serializer = AccountSerializerV1(data=event_data['data'])
-    serializer.is_valid(raise_exception=True)
-    account = Account.objects.get(public_id=event_data['data']['public_id'])
-    serializer.update(account, serializer.validated_data)
+def update_account(event):
+    serializer = get_serializer(SerializerNames.ACCOUNT, event['event_version'])
+    account_model = serializer(**event['data'])
+    Account.objects.filter(public_id=account_model.public_id).update(**attrs.asdict(account_model))
 
 
 @app.task
-def create_transaction(event_data):
-    serializer = TransactionSerializerV1(data=event_data['data'])
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
+def create_transaction(event):
+    serializer = get_serializer(SerializerNames.TRANSACTION, event['event_version'])
+    transaction_model = serializer(**event['data'])
+    Transaction.objects.create(**attrs.asdict(transaction_model))
 
 
 @app.task
-def create_task(event_data):
-    serializer = TaskSerializerV1(data=event_data['data'])
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-
-    task = serializer.instance
+def create_task(event):
+    serializer = get_serializer(SerializerNames.TASK, event['event_version'])
+    task_model = serializer(**event['data'])
+    task = Task.objects.create(**attrs.asdict(task_model))
     if task.status == Task.StatusChoices.COMPLETED:
-        DayStats.update_stats(task)
+        Stats.update_stats(task)
 
 
 @app.task
 @transaction.atomic
-def update_task(event_data):
-    serializer = TaskSerializerV1(data=event_data['data'])
-    serializer.is_valid(raise_exception=True)
-    task = Task.objects.get(public_id=event_data['data']['public_id'])
-    serializer.update(task, serializer.validated_data)
-
+def update_task(event):
+    serializer = get_serializer(SerializerNames.TASK, event['event_version'])
+    task_model = serializer(**event['data'])
+    task = Task.objects.filter(public_id=task_model.public_id).update(**attrs.asdict(task_model))
     if task.status == Task.StatusChoices.COMPLETED:
-        DayStats.update_stats(task)
+        Stats.update_stats(task)

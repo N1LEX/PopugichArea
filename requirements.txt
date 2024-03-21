@@ -4,3 +4,4 @@ djangorestframework-simplejwt
 djoser~=2.2.2
 confluent-kafka
 celery[redis]
+attrs

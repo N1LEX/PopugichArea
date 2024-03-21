@@ -12,7 +12,7 @@ from accounting import validators
 class UserV1:
     public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
     username: str = attrs.field(validator=attrs.validators.instance_of(str))
-    full_name: str = attrs.field(validator=attrs.validators.instance_of(str))
+    full_name: str = attrs.field(default=None)
     role: str = attrs.field(validator=attrs.validators.instance_of(str))
     email: str = attrs.field(validator=attrs.validators.instance_of(str))
 
@@ -85,7 +85,7 @@ class SerializerNames(Enum):
 
 
 SERIALIZERS = {
-    '1': {
+    'v1': {
         SerializerNames.USER: UserV1,
         SerializerNames.TASK: TaskV1,
         SerializerNames.TRANSACTION: TransactionV1,

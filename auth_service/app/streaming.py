@@ -9,11 +9,15 @@ from django.utils.timezone import now
 
 
 class EventVersions(Enum):
-    v1 = 'v1'
+    v1 = '1'
+
+
+class EventNames(Enum):
+    USER_CREATED = 'UserCreated'
 
 
 class Topics(Enum):
-    TASK_LIFECYCLE = 'task-lifecycle'
+    USER_STREAMING = 'user-streaming'
 
 
 @attrs.define(kw_only=True)
@@ -23,7 +27,7 @@ class Event:
     data: typing.Union[typing.List, typing.Dict] = attrs.field()
     event_id: str = attrs.field(default=uuid4(), converter=str)
     event_time: str = attrs.field(default=now(), converter=str)
-    producer: str = attrs.field(default='task-tracker')
+    producer: str = attrs.field(default='accounting-service')
 
 
 class EventStreaming:
@@ -31,15 +35,11 @@ class EventStreaming:
     def __init__(self, version: str = EventVersions.v1):
         self.version = version
 
-    def task_updated(self, task):
-        event = Event(
-            event_name=f'Task{task.status.capitalize()}',
-            event_version=self.version,
-            data=attrs.asdict(task),
-        )
+    def user_created(self, user):
+        event = self.get_event(EventNames.USER_CREATED, attrs.asdict(user))
         settings.PRODUCER.produce(
-            topic=Topics.TASK_LIFECYCLE,
-            key=task.status,
+            topic=Topics.USER_STREAMING,
+            key='created',
             value=json.dumps(event).encode('utf-8'),
         )
 
@@ -48,9 +48,9 @@ class EventStreaming:
 
 
 EVENT_STREAMING_VERSIONS = {
-    '1': EventStreaming(version='1')
+    'v1': EventStreaming(version='v1')
 }
 
 
-def get_event_streaming(event_version: str) -> EventStreaming:
+def get_event_streaming(event_version: str):
     return EVENT_STREAMING_VERSIONS[event_version]

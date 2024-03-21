@@ -59,7 +59,7 @@ REST_FRAMEWORK = {
         'task_service.authentication.Authentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.Authenticated',
+        'rest_framework.permissions.IsAuthenticated',
     ),
 }
 

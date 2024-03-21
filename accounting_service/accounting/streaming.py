@@ -79,7 +79,7 @@ class EventStreaming:
 
 
 EVENT_STREAMING_VERSIONS = {
-    '1': EventStreaming(version='1')
+    'v1': EventStreaming(version='v1')
 }
 
 

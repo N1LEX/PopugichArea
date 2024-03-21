@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import attrs
+from celery import shared_task
 from django.core.mail import send_mail
 from django.db import transaction
 
@@ -11,7 +12,7 @@ from accounting.streaming import get_event_streaming
 from accounting_service.celery import app
 
 
-@app.shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
 def create_user(event):
     user_model = get_serializer(SerializerNames.USER, event['event_version'])(data=event['data'])
@@ -21,7 +22,7 @@ def create_user(event):
         BillingCycle.new(user=user)
 
 
-@app.shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
 def handle_created_task(event):
     event_version = event['event_version']
@@ -41,7 +42,7 @@ def handle_created_task(event):
         event_streaming.transaction_created(transaction_model)
 
 
-@app.shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
 def handle_assigned_task(event):
     event_version = event['event_version']
@@ -95,7 +96,7 @@ def close_billing_cycles(event_version: str):
         close_billing_cycle.delay(user.id, event_version)
 
 
-@app.shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 7, 'countdown': 1})
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 7, 'countdown': 1})
 @transaction.atomic
 def close_billing_cycle(user_id: int, event_version: str):
     send_report = False
@@ -125,7 +126,7 @@ def close_billing_cycle(user_id: int, event_version: str):
         send_payout_report.delay(user.email, payment_amount)
 
 
-@app.shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 7, 'countdown': 10})
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 7, 'countdown': 10})
 def send_payout_report(email, amount):
     send_mail(
         subject="Payout for completed tasks",

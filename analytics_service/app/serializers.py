@@ -4,14 +4,15 @@ from typing import List
 import attrs
 from rest_framework import serializers
 
-from analytics_service.app import validators
+from app import validators
+from app.streaming import EventVersions
 
 
 @attrs.define(kw_only=True)
 class UserV1:
     public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
     username: str = attrs.field(validator=attrs.validators.instance_of(str))
-    full_name: str = attrs.field(validator=attrs.validators.instance_of(str))
+    full_name: str = attrs.field(default=None)
     role: str = attrs.field(validator=attrs.validators.instance_of(str))
     email: str = attrs.field(validator=attrs.validators.instance_of(str))
 
@@ -63,10 +64,23 @@ class DayStatsV1:
     date: str = attrs.field(converter=str)
     most_expensive_task: TaskV1 = attrs.field(converter=TaskV1.from_dict)
 
+    @classmethod
+    def from_list(cls, data: list[dict]) -> List['DayStatsV1']:
+        return [cls(**stats) for stats in data]
+
+
+@attrs.define
+class AllStatsV1:
+    data: List[DayStatsV1] = attrs.field(converter=DayStatsV1.from_list)
+
 
 class MostExpensiveTaskRequest(serializers.ModelSerializer):
     start_date: str = attrs.field(validator=validators.DatetimeValidator)
     end_date: str = attrs.field(validator=validators.DatetimeValidator)
+    version: str = attrs.field(
+        default=EventVersions,
+        validator=attrs.validators.in_([EventVersions._member_names_]),
+    )
 
 
 class SerializerNames(Enum):
@@ -75,15 +89,17 @@ class SerializerNames(Enum):
     TRANSACTION = 'Transaction'
     ACCOUNT = 'Account'
     DayStats = 'DayStats'
+    AllStats = 'AllStats'
 
 
 SERIALIZERS = {
-    '1': {
+    'v1': {
         SerializerNames.USER: UserV1,
         SerializerNames.TASK: TaskV1,
         SerializerNames.TRANSACTION: TransactionV1,
         SerializerNames.ACCOUNT: AccountV1,
         SerializerNames.DayStats: DayStatsV1,
+        SerializerNames.AllStats: AllStatsV1,
     }
 }
 

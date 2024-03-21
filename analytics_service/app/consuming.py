@@ -2,7 +2,7 @@ import json
 
 from confluent_kafka import Consumer, Message
 
-from analytics_service.app import tasks
+from app import tasks
 
 
 class KafkaConsumer:
@@ -37,14 +37,14 @@ class KafkaConsumer:
                 if msg.error():
                     # TODO requeue msg back to topic?
                     continue
-                topic, key, data = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
-                print(topic, key, data)
+                topic, key, event = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
+                print(topic, key, event)
                 # TODO SchemaRegistry
                 # try:
                 #     SchemaRegistry.validate_event(event=data, version='v1')
                 # except SchemaValidationError as e:
                 #     logger.exception(e)
                 handler = self.EVENT_HANDLERS[topic][key]
-                handler.delay(data)
+                handler.delay(event)
         finally:
             self._consumer.close()

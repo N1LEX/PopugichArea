@@ -9,7 +9,8 @@ services:
     ports:
       - "8001:8000"
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy
 
   task:
     build: .
@@ -20,7 +21,8 @@ services:
     ports:
       - "8002:8000"
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy
 
   accounting:
     build: .
@@ -31,7 +33,20 @@ services:
     ports:
       - "8003:8000"
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy
+
+  analytics:
+    build: .
+    working_dir: /analytics_service
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./analytics_service:/analytics_service
+    ports:
+      - "8004:8000"
+    depends_on:
+      broker:
+        condition: service_healthy
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -65,6 +80,7 @@ services:
       retries: 15
     depends_on:
       - zookeeper
+      - redis
 
   redis:
     restart: on-failure
@@ -74,13 +90,12 @@ services:
     restart: on-failure
     build: .
     working_dir: /popug_area/task_service
-    command: bash -c "celery -A task_service worker -P solo --loglevel=INFO"
+    command: bash -c "celery -A task_service worker --loglevel=INFO"
     environment:
       DJANGO_SETTINGS_MODULE: 'task_service.settings'
-      CELERY_BROKER_URL: 'redis://redis:6379/0'
-      CELERY_RESULT_BACKEND: 'redis://redis:6379/0'
     depends_on:
-      - redis
+      broker:
+        condition: service_healthy
     volumes:
       - ./task_service:/popug_area/task_service
 
@@ -91,10 +106,9 @@ services:
     command: bash -c "celery -A accounting_service worker -P solo --loglevel=INFO"
     environment:
       DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
-      CELERY_BROKER_URL: 'redis://redis:6379/1'
-      CELERY_RESULT_BACKEND: 'redis://redis:6379/1'
     depends_on:
-      - redis
+      broker:
+        condition: service_healthy
     volumes:
       - ./accounting_service:/popug_area/accounting_service
 
@@ -105,12 +119,24 @@ services:
     command: bash -c "celery -A accounting_service beat"
     environment:
       DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
-      CELERY_BROKER_URL: 'redis://redis:6379/1'
-      CELERY_RESULT_BACKEND: 'redis://redis:6379/1'
     depends_on:
-      - redis
+      broker:
+        condition: service_healthy
     volumes:
       - ./accounting_service:/popug_area/accounting_service
+
+  analytics_celery:
+    restart: on-failure
+    build: .
+    working_dir: /popug_area/analytics_service
+    command: bash -c "celery -A analytic_service worker --loglevel=INFO"
+    environment:
+      DJANGO_SETTINGS_MODULE: 'analytic_service.settings'
+    depends_on:
+      broker:
+        condition: service_healthy
+    volumes:
+      - ./analytics_service:/popug_area/analytics_service
 
   task_consumer:
     build: .
@@ -130,6 +156,17 @@ services:
     command: python manage.py runconsumer
     volumes:
       - ./accounting_service:/accounting_service
+    depends_on:
+      broker:
+        condition: service_healthy
+
+  analytics_consumer:
+    build: .
+    restart: always
+    working_dir: /analytics_service
+    command: python manage.py runconsumer
+    volumes:
+      - ./analytics_service:/analytics_service
     depends_on:
       broker:
         condition: service_healthy

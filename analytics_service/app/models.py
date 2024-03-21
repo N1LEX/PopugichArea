@@ -76,7 +76,7 @@ class Transaction(models.Model):
         return self.debit
 
 
-class DayStats(models.Model):
+class Stats(models.Model):
     management_earning = models.IntegerField(default=0)
     negative_balances = models.PositiveSmallIntegerField(default=0)
     most_expensive_task = models.ForeignKey(Task, on_delete=models.PROTECT, null=True)

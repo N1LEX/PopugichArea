@@ -1,8 +1,8 @@
+import attrs
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import permissions, status
+from rest_framework import permissions
 from rest_framework.generics import GenericAPIView, CreateAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,7 +12,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from app.models import User
-from app.serializers import UserSerializer
+from app.serializers import get_serializer, SerializerNames
+from app.streaming import EventVersions, get_event_streaming, EventStreaming
 
 
 class SigninView(APIView):
@@ -24,7 +25,14 @@ class SigninView(APIView):
 
 class UserCreateView(CreateAPIView):
     permission_classes = [permissions.AllowAny]
-    serializer_class = UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        event_version = request.query_params.get('version', EventVersions.v1)
+        serializer = get_serializer(SerializerNames.USER, event_version)
+        user_model = serializer(**request.data)
+        User.objects.create(**attrs.asdict(user_model))
+        event_streaming: EventStreaming = get_event_streaming(event_version)
+        event_streaming.user_created(user_model)
 
 
 class AuthenticateAppView(GenericAPIView):
