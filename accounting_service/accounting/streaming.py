@@ -35,17 +35,17 @@ class Event:
 
 class EventStreaming:
 
-    def __init__(self, version: str = EventVersions.v1):
+    def __init__(self, version: str = EventVersions.v1.value):
         self.version = version
 
     def transaction_created(self, transaction):
         event = Event(
-            event_name=EventNames.TRANSACTION_CREATED,
+            event_name=EventNames.TRANSACTION_CREATED.value,
             event_version=self.version,
             data=attrs.asdict(transaction, filter=attrs.filters.exclude('display_amount'))
         )
         settings.PRODUCER.produce(
-            topic=Topics.TRANSACTION_STREAM,
+            topic=Topics.TRANSACTION_STREAM.value,
             key=transaction.type,
             value=json.dumps(event).encode('utf-8'),
         )
@@ -53,12 +53,12 @@ class EventStreaming:
 
     def account_created(self, account):
         event = Event(
-            event_name=EventNames.ACCOUNT_CREATED,
+            event_name=EventNames.ACCOUNT_CREATED.value,
             event_version=self.version,
             data=attrs.asdict(account),
         )
         settings.PRODUCER.produce(
-            topic=Topics.ACCOUNT_STREAM,
+            topic=Topics.ACCOUNT_STREAM.value,
             key='created',
             value=json.dumps(event).encode('utf-8'),
         )
@@ -66,12 +66,12 @@ class EventStreaming:
 
     def account_updated(self, account):
         event = Event(
-            event_name=EventNames.ACCOUNT_UPDATED,
+            event_name=EventNames.ACCOUNT_UPDATED.value,
             event_version=self.version,
             data=attrs.asdict(account),
         )
         settings.PRODUCER.produce(
-            topic=Topics.ACCOUNT_STREAM,
+            topic=Topics.ACCOUNT_STREAM.value,
             key='updated',
             value=json.dumps(event).encode('utf-8'),
         )
@@ -82,7 +82,7 @@ class EventStreaming:
 
 
 EVENT_STREAMING_VERSIONS = {
-    EventVersions.v1: EventStreaming(version=EventVersions.v1)
+    EventVersions.v1: EventStreaming(version=EventVersions.v1.value)
 }
 
 

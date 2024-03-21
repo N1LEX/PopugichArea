@@ -1,4 +1,3 @@
-import random
 from datetime import date
 from uuid import uuid4
 
@@ -40,10 +39,6 @@ class User(models.Model):
 
     def __str__(self):
         return self.username
-
-
-def random_price():
-    return random.randint(1, 1000)
 
 
 class Task(models.Model):

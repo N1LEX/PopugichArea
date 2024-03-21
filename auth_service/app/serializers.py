@@ -26,9 +26,9 @@ class SerializerNames(TextChoices):
 
 
 SERIALIZERS = {
-    EventVersions.v1: {
-        SerializerNames.USER: UserV1,
-        SerializerNames.USER_SIGNUP: UserSignUpV1,
+    EventVersions.v1.value: {
+        SerializerNames.USER.value: UserV1,
+        SerializerNames.USER_SIGNUP.value: UserSignUpV1,
     }
 }
 

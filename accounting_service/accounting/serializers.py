@@ -1,11 +1,12 @@
+import random
 from typing import List
-from uuid import uuid4
 
 import attrs
-from accounting import validators
-from accounting.streaming import EventVersions
 from django.db.models import TextChoices
-from django.utils.timezone import now
+
+from accounting.streaming import EventVersions
+from accounting import validators
+
 
 
 @attrs.define(kw_only=True)
@@ -19,32 +20,36 @@ class UserV1:
 
 @attrs.define(kw_only=True)
 class TaskV1:
+    @staticmethod
+    def random_price():
+        return random.randint(1, 1000)
+
     public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
     user_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
     description: str = attrs.field(validator=attrs.validators.instance_of(str))
     status: str = attrs.field(validator=attrs.validators.instance_of(str))
     date: str = attrs.field(validator=validators.DatetimeValidator)
-    assigned_price: int = attrs.field(default=None)
-    completed_price: int = attrs.field(default=None)
+    assigned_price: int = attrs.field(default=random_price())
+    completed_price: int = attrs.field(default=random_price())
 
 
 @attrs.define(kw_only=True)
 class AccountV1:
-    public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
-    user_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
-    balance: int = attrs.field(validator=attrs.validators.instance_of(int), default=0)
+    public_id: str = attrs.field(converter=str)
+    user_id: str = attrs.field(converter=str)
+    balance: int = attrs.field(default=0)
 
 
 @attrs.define(kw_only=True)
 class TransactionV1:
-    public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str, default=uuid4())
-    account_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
-    billing_cycle_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
-    type: str = attrs.field(validator=attrs.validators.instance_of(str))
-    debit: int = attrs.field(validator=attrs.validators.instance_of(int), default=0)
-    credit: int = attrs.field(validator=attrs.validators.instance_of(int), default=0)
-    purpose: str = attrs.field(validator=attrs.validators.instance_of(str))
-    datetime: str = attrs.field(validator=validators.DatetimeValidator, converter=str, default=str(now()))
+    public_id: str = attrs.field(converter=str)
+    account_id: str = attrs.field(converter=str)
+    billing_cycle_id: str = attrs.field(converter=str)
+    type: str = attrs.field()
+    debit: int = attrs.field(default=0)
+    credit: int = attrs.field(default=0)
+    purpose: str = attrs.field()
+    datetime: str = attrs.field()
 
     display_amount: int = attrs.field(default=0)
 
@@ -55,7 +60,7 @@ class TransactionV1:
 
 @attrs.define(kw_only=True)
 class AccountStateV1:
-    balance: int
+    balance: int = attrs.field()
     transactions: List[TransactionV1] = attrs.field(converter=TransactionV1.from_list)
 
 

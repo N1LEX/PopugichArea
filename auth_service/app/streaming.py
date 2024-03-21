@@ -32,16 +32,16 @@ class Event:
 
 class EventStreaming:
 
-    def __init__(self, version: str = EventVersions.v1):
+    def __init__(self, version: str = EventVersions.v1.value):
         self.version = version
 
     def user_created(self, user):
         event = self.get_event(
-            EventNames.USER_CREATED,
+            EventNames.USER_CREATED.value,
             attrs.asdict(user, filter=attrs.filters.exclude('password'))
         )
         settings.PRODUCER.produce(
-            topic=Topics.USER_STREAM,
+            topic=Topics.USER_STREAM.value,
             key='created',
             value=json.dumps(attrs.asdict(event)).encode('utf-8'),
         )
@@ -52,7 +52,7 @@ class EventStreaming:
 
 
 EVENT_STREAMING_VERSIONS = {
-    EventVersions.v1: EventStreaming(version=EventVersions.v1)
+    EventVersions.v1: EventStreaming(version=EventVersions.v1.value)
 }
 
 

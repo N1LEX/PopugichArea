@@ -24,8 +24,8 @@ class TaskV1:
     description: str = attrs.field(validator=attrs.validators.instance_of(str))
     status: str = attrs.field(validator=attrs.validators.instance_of(str))
     date: str = attrs.field(validator=validators.DatetimeValidator)
-    assigned_price: int = attrs.field(default=None)
-    completed_price: int = attrs.field(default=None)
+    assigned_price: int = attrs.field(init=False, validator=attrs.validators.instance_of(int))
+    completed_price: int = attrs.field(init=None, validator=attrs.validators.instance_of(int))
 
     @classmethod
     def from_dict(cls, data: dict) -> 'TaskV1':

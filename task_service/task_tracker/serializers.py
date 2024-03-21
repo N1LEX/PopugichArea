@@ -18,10 +18,10 @@ class UserV1:
 @attrs.define(kw_only=True)
 class TaskV1:
     public_id: str = attrs.field(default=uuid4(), converter=str)
-    user_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
-    description: str = attrs.field(validator=attrs.validators.instance_of(str))
-    status: str = attrs.field(validator=attrs.validators.instance_of(str))
-    date: str = attrs.field(validator=validators.DatetimeValidator, converter=str)
+    user_id: str = attrs.field(converter=str)
+    description: str = attrs.field()
+    status: str = attrs.field()
+    date: str = attrs.field(converter=str)
 
 
 class SerializerNames(TextChoices):
