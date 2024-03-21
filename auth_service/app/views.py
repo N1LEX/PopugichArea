@@ -12,8 +12,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from app.models import User
-from app.serializers import get_serializer, SerializerNames
-from app.streaming import EventVersions, get_event_streaming, EventStreaming
+from app.serializers import SerializerNames, get_serializer
+from app.streaming import get_event_streaming, EventStreaming, EventVersions
 
 
 class SigninView(APIView):
@@ -30,7 +30,9 @@ class UserCreateView(CreateAPIView):
         event_version = request.query_params.get('version', EventVersions.v1)
         user_signup_serializer = get_serializer(SerializerNames.USER_SIGNUP, event_version)
         user_signup_model = user_signup_serializer(**request.data)
-        User.objects.create(**attrs.asdict(user_signup_model))
+        user = User(**attrs.asdict(user_signup_model))
+        user.set_password(user.password)
+        user.save()
         event_streaming: EventStreaming = get_event_streaming(event_version)
         event_streaming.user_created(user_signup_model)
         return Response(data=attrs.asdict(user_signup_model, filter=attrs.filters.exclude('password')))
@@ -62,7 +64,7 @@ class TokenCreateView(views.TokenObtainPairView):
         except TokenError as e:
             raise InvalidToken(e.args[0])
 
-        response = HttpResponseRedirect(redirect_to='http://localhost:8002/task/')
+        response = HttpResponseRedirect(redirect_to='http://localhost:8002/task-tracker/')
         response.set_cookie(
             'access',
             serializer.validated_data['access'],

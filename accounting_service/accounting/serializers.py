@@ -1,11 +1,11 @@
-from enum import Enum
 from typing import List
 from uuid import uuid4
 
 import attrs
-from django.utils.timezone import now
-
 from accounting import validators
+from accounting.streaming import EventVersions
+from django.db.models import TextChoices
+from django.utils.timezone import now
 
 
 @attrs.define(kw_only=True)
@@ -75,7 +75,7 @@ class ManagementEarningStatsV1:
     history: List[ManagementEarningV1] = attrs.field(converter=ManagementEarningV1.from_list)
 
 
-class SerializerNames(Enum):
+class SerializerNames(TextChoices):
     USER = 'User'
     TASK = 'Task'
     TRANSACTION = 'Transaction'
@@ -85,7 +85,7 @@ class SerializerNames(Enum):
 
 
 SERIALIZERS = {
-    'v1': {
+    EventVersions.v1: {
         SerializerNames.USER: UserV1,
         SerializerNames.TASK: TaskV1,
         SerializerNames.TRANSACTION: TransactionV1,

@@ -1,11 +1,16 @@
 import json
 
 from confluent_kafka import Consumer, Message
-
+from django.db.models import TextChoices
 from task_tracker.tasks import create_user
 
+
+class Topics(TextChoices):
+    USER_STREAM = 'user-stream'
+
+
 EVENT_HANDLERS = {
-    'user-stream': {
+    Topics.USER_STREAM: {
         'created': create_user,
     }
 }
@@ -15,7 +20,7 @@ class KafkaConsumer:
 
     def __init__(self):
         self._consumer = Consumer({'bootstrap.servers': 'broker:29092', 'group.id': 'task-tracker'})
-        self._consumer.subscribe(['user-stream'])
+        self._consumer.subscribe([Topics.values])
 
     def consume(self):
         try:

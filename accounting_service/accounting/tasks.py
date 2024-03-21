@@ -1,15 +1,13 @@
 from datetime import timedelta
 
 import attrs
-from celery import shared_task
-from django.core.mail import send_mail
-from django.db import transaction
-
 from accounting import models
 from accounting.models import User, Task, Account, BillingCycle
 from accounting.serializers import get_serializer, SerializerNames
 from accounting.streaming import get_event_streaming
 from accounting_service.celery import app
+from celery import shared_task
+from django.db import transaction
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
@@ -128,10 +126,9 @@ def close_billing_cycle(user_id: int, event_version: str):
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 7, 'countdown': 10})
 def send_payout_report(email, amount):
-    send_mail(
-        subject="Payout for completed tasks",
-        message=amount,
-        from_email="accounting@popug.inc",
-        recipient_list=[email],
-        fail_silently=False,
-    )
+    return {
+        'from': 'accounting@popug.inc',
+        'to': email,
+        'subject': 'Payout for completed tasks',
+        'message': amount
+    }

@@ -9,7 +9,7 @@ from django.utils.timezone import now
 
 
 class EventVersions(TextChoices):
-    v1 = '1'
+    v1 = 'v1'
 
 
 class EventNames(TextChoices):
@@ -49,6 +49,7 @@ class EventStreaming:
             key=transaction.type,
             value=json.dumps(event).encode('utf-8'),
         )
+        settings.PRODUCER.flush()
 
     def account_created(self, account):
         event = Event(
@@ -61,6 +62,7 @@ class EventStreaming:
             key='created',
             value=json.dumps(event).encode('utf-8'),
         )
+        settings.PRODUCER.flush()
 
     def account_updated(self, account):
         event = Event(
@@ -73,13 +75,14 @@ class EventStreaming:
             key='updated',
             value=json.dumps(event).encode('utf-8'),
         )
+        settings.PRODUCER.flush()
 
     def get_event(self, name: str, data: dict):
         return Event(event_name=name, event_version=self.version, data=data)
 
 
 EVENT_STREAMING_VERSIONS = {
-    EventVersions.v1: EventStreaming(version='v1')
+    EventVersions.v1: EventStreaming(version=EventVersions.v1)
 }
 
 

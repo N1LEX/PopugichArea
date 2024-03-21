@@ -1,10 +1,9 @@
 import json
 import logging
 
+from accounting import tasks
 from confluent_kafka import Consumer, Message
 from django.db.models import TextChoices
-
-from accounting import tasks
 
 
 class Topics(TextChoices):
@@ -30,7 +29,7 @@ class KafkaConsumer:
 
     def __init__(self):
         self._consumer = Consumer({'bootstrap.servers': 'broker:29092', 'group.id': 'accounting'})
-        self._consumer.subscribe(['user-stream', 'tasks'])
+        self._consumer.subscribe([Topics.values])
 
     def consume(self):
         try:

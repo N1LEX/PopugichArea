@@ -17,7 +17,7 @@ class EventNames(TextChoices):
 
 
 class Topics(TextChoices):
-    USER_STREAMING = 'user-streaming'
+    USER_STREAM = 'user-stream'
 
 
 @attrs.define(kw_only=True)
@@ -41,17 +41,18 @@ class EventStreaming:
             attrs.asdict(user, filter=attrs.filters.exclude('password'))
         )
         settings.PRODUCER.produce(
-            topic=Topics.USER_STREAMING,
+            topic=Topics.USER_STREAM,
             key='created',
             value=json.dumps(attrs.asdict(event)).encode('utf-8'),
         )
+        settings.PRODUCER.flush()
 
     def get_event(self, name: str, data: dict):
         return Event(event_name=name, event_version=self.version, data=data)
 
 
 EVENT_STREAMING_VERSIONS = {
-    EventVersions.v1: EventStreaming(version='v1')
+    EventVersions.v1: EventStreaming(version=EventVersions.v1)
 }
 
 

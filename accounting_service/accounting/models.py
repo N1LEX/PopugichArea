@@ -42,10 +42,11 @@ class User(models.Model):
         return self.username
 
 
+def random_price():
+    return random.randint(1, 1000)
+
+
 class Task(models.Model):
-    @staticmethod
-    def random_price():
-        return random.randint(1, 1000)
 
     class StatusChoices(models.TextChoices):
         OPENED = 'opened', 'opened'

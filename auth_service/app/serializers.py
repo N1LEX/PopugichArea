@@ -3,7 +3,7 @@ from uuid import uuid4
 import attrs
 from django.db.models import TextChoices
 
-from streaming import EventVersions
+from app.streaming import EventVersions
 
 
 @attrs.define(kw_only=True)

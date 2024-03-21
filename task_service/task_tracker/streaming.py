@@ -42,13 +42,14 @@ class EventStreaming:
             key=task.status,
             value=json.dumps(event).encode('utf-8'),
         )
+        settings.PRODUCER.flush()
 
     def get_event(self, name: str, data: dict):
         return Event(event_name=name, event_version=self.version, data=data)
 
 
 EVENT_STREAMING_VERSIONS = {
-    'v1': EventStreaming(version='v1')
+    EventVersions.v1: EventStreaming(version=EventVersions.v1)
 }
 
 

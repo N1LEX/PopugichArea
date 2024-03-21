@@ -79,7 +79,7 @@ class MostExpensiveTaskRequest(serializers.ModelSerializer):
     end_date: str = attrs.field(validator=validators.DatetimeValidator)
     version: str = attrs.field(
         default=EventVersions,
-        validator=attrs.validators.in_([EventVersions._member_names_]),
+        validator=attrs.validators.in_([EventVersions.values]),
     )
 
 
@@ -93,7 +93,7 @@ class SerializerNames(TextChoices):
 
 
 SERIALIZERS = {
-    'v1': {
+    EventVersions.v1: {
         SerializerNames.USER: UserV1,
         SerializerNames.TASK: TaskV1,
         SerializerNames.TRANSACTION: TransactionV1,
