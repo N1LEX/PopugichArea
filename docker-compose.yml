@@ -9,7 +9,8 @@ services:
     ports:
       - "8001:8000"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   task:
     build: .
@@ -20,7 +21,8 @@ services:
     ports:
       - "8002:8000"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   accounting:
     build: .
@@ -31,7 +33,8 @@ services:
     ports:
       - "8003:8000"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   analytics:
     build: .
@@ -42,7 +45,8 @@ services:
     ports:
       - "8004:8000"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   kafka:
     image: confluentinc/confluent-local:latest
@@ -56,10 +60,10 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
       KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://localhost:9092'
     healthcheck:
-      test: [ "CMD", "nc", "-vz", "localhost", "9092" ]
-      interval: 2s
+      test: kafka-topics --bootstrap-server kafka:29092 --list
+      interval: 15s
       timeout: 10s
-      retries: 15
+      retries: 5
 
   init-kafka:
     image: confluentinc/confluent-local:latest
@@ -75,6 +79,9 @@ services:
       && echo -e 'Successfully created the following topics:'
       && kafka-topics --bootstrap-server kafka:29092 --list
       "
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -101,6 +108,9 @@ services:
       DJANGO_SETTINGS_MODULE: 'task_service.settings'
     volumes:
       - ./task_service:/popug_area/task_service
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   accounting_celery:
     restart: on-failure
@@ -111,6 +121,9 @@ services:
       DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
     volumes:
       - ./accounting_service:/popug_area/accounting_service
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   accounting_celery_beat:
     restart: on-failure
@@ -121,6 +134,9 @@ services:
       DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
     volumes:
       - ./accounting_service:/popug_area/accounting_service
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   analytics_celery:
     restart: on-failure
@@ -131,6 +147,9 @@ services:
       DJANGO_SETTINGS_MODULE: 'analytic_service.settings'
     volumes:
       - ./analytics_service:/popug_area/analytics_service
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   task_consumer:
     build: .
@@ -140,7 +159,8 @@ services:
     volumes:
       - ./task_service:/task_service
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   accounting_consumer:
     build: .
@@ -150,7 +170,8 @@ services:
     volumes:
       - ./accounting_service:/accounting_service
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   analytics_consumer:
     build: .
@@ -160,4 +181,5 @@ services:
     volumes:
       - ./analytics_service:/analytics_service
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy

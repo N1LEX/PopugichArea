@@ -7,7 +7,7 @@ from task_tracker import validators
 
 @attrs.define(kw_only=True)
 class UserV1:
-    public_id: str = attrs.field(validator=validators.UUIDValidator, converter=str)
+    public_id: str = attrs.field(validator=validators.UUIDValidator(), converter=str)
     username: str = attrs.field(validator=attrs.validators.instance_of(str))
     full_name: str = attrs.field(default=None)
     role: str = attrs.field(validator=attrs.validators.instance_of(str))

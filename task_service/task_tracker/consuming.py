@@ -20,20 +20,22 @@ class KafkaConsumer:
 
     def __init__(self):
         self.consumer = Consumer({'bootstrap.servers': 'kafka:29092', 'group.id': 'task-tracker'})
-        self.consumer.subscribe([Topics.values])
+        self.consumer.subscribe(Topics.values)
 
     def consume(self):
         try:
             while True:
-                msg: Message = self.consumer.poll(1)
-                if msg is None:
-                    continue
-                if msg.error():
-                    # TODO requeue msg back to topic?
-                    continue
-                topic, key, event = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
-                print(topic, key, event)
-                handler = EVENT_HANDLERS[topic][key]
-                handler.delay(event)
+                try:
+                    msg: Message = self.consumer.poll(1)
+                    if msg is None: continue
+                    if msg.error():
+                        # TODO requeue msg back to topic?
+                        print(msg.error().code())
+                    topic, key, event = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
+                    print(topic, key, event)
+                    handler = EVENT_HANDLERS[topic][key]
+                    handler.delay(event)
+                except Exception as e:
+                    print(str(e))
         finally:
             self.consumer.close()

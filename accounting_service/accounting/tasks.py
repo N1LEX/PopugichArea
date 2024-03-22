@@ -12,7 +12,7 @@ from django.db import transaction
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
-def create_user(event):
+def create_user(_, event):
     user_model = get_serializer(SerializerNames.USER, event['event_version'])(data=event['data'])
     user = User.objects.create(**attrs.asdict(user_model))
     if user.role in (User.RoleChoices.ADMIN, User.RoleChoices.MANAGER):
@@ -22,7 +22,7 @@ def create_user(event):
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
-def handle_created_task(event):
+def handle_created_task(_, event):
     event_version = event['event_version']
     task_model = get_serializer(SerializerNames.TASK, event_version)(data=event['data'])
     task = Task.objects.create(**attrs.asdict(task_model))
@@ -42,7 +42,7 @@ def handle_created_task(event):
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
-def handle_assigned_task(event):
+def handle_assigned_task(_, event):
     event_version = event['event_version']
 
     task_serializer = get_serializer(SerializerNames.TASK, event_version)(data=event['data'])
@@ -66,7 +66,7 @@ def handle_assigned_task(event):
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
-def handle_completed_task(event):
+def handle_completed_task(_, event):
     event_version = event['event_version']
 
     serializer = get_serializer(SerializerNames.TASK, event_version)(data=event['data'])
@@ -96,7 +96,7 @@ def close_billing_cycles(event_version: str):
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
-def close_billing_cycle(user_id: int, event_version: str):
+def close_billing_cycle(_, user_id: int, event_version: str):
     send_report = False
     user = User.objects.get(id=user_id)
     account = user.account
@@ -125,7 +125,7 @@ def close_billing_cycle(user_id: int, event_version: str):
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 7, 'countdown': 10})
-def send_payout_report(email, amount):
+def send_payout_report(_, email, amount):
     return {
         'from': 'accounting@popug.inc',
         'to': email,

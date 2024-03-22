@@ -4,7 +4,7 @@ from celery.schedules import crontab
 
 app = Celery('accounting_service')
 app.conf.update(broker_url='redis://redis:6379/0')
-app.autodiscover_tasks(['accounting'])
+app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
     'close_billing_cycles_v1': {

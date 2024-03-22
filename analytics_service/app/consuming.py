@@ -34,7 +34,7 @@ class KafkaConsumer:
 
     def __init__(self):
         self.consumer = Consumer({'bootstrap.servers': 'kafka:29092', 'group.id': 'analytics'})
-        self.consumer.subscribe([Topics.values])
+        self.consumer.subscribe(Topics.values)
 
     def consume(self):
         try:
@@ -45,14 +45,9 @@ class KafkaConsumer:
                         continue
                     if msg.error():
                         # TODO requeue msg back to topic?
-                        continue
+                        print(msg.error().code())
                     topic, key, event = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
                     print(topic, key, event)
-                    # TODO SchemaRegistry
-                    # try:
-                    #     SchemaRegistry.validate_event(event=data, version='v1')
-                    # except SchemaValidationError as e:
-                    #     logger.exception(e)
                     handler = self.EVENT_HANDLERS[topic][key]
                     handler.delay(event)
                 except Exception as e:
