@@ -5,3 +5,4 @@
 /auth_service/db.sqlite3
 /task_service/db.sqlite3
 /accounting_service/db.sqlite3
+/venv/

@@ -1,11 +1,11 @@
 from django.core.management import BaseCommand
 
-from task_tracker.consumer import KafkaConsumer
+from task_tracker.consuming import KafkaConsumer
 
 
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
-        print('Running consumer...')
+        print('Running task_tracker consumer...')
         KafkaConsumer().consume()
         print('Consumer disconnected')

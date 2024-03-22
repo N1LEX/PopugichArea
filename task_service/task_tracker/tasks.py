@@ -1,31 +1,40 @@
 import random
 
-from task_service.celery import app
+from celery import shared_task
 from task_tracker.models import Task, User
+from task_tracker.serializers import get_serializer, SerializerNames
+from task_tracker.streaming import get_event_streaming
 
 
-@app.task
-def assign_tasks():
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+def assign_tasks(_, event_version: str):
     users = User.workers()
     for task in Task.assigned():
-        assign_task.delay(task.id, random.choice(users).id)
+        assign_task.delay(str(task.pk), random.choice(users).id, event_version)
 
 
-@app.task
-def assign_task(task_id: int, user_id: int):
-    task = Task.objects.get(id=task_id)
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+def assign_task(_, task_pk: str, user_id: int, event_version: str):
+    task = Task.objects.get(pk=task_pk)
     if task.status == Task.StatusChoices.ASSIGNED:
         task.assign(user_id)
-        return {'message': f'task ({task_id}) reassigned'}
-    return {'message': f'task ({task_id}) has already completed'}
+        serializer = get_serializer(SerializerNames.TASK, event_version)
+        event_streaming = get_event_streaming(event_version)
+        task_model = serializer(**task.to_dict())
+        event_streaming.task_updated(task_model)
 
 
-@app.task
-def create_user(**user_data):
-    user = User.objects.create(
-        username=user_data['username'],
-        public_id=user_data['public_id'],
-        role=user_data['role'],
-        full_name=user_data['full_name'],
-    )
-    return {'message': 'User created', 'public_id': str(user.public_id)}
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+def task_completed(_, task_pk: str, event_version: str):
+    task = Task.objects.get(pk=task_pk)
+    serializer = get_serializer(SerializerNames.TASK, event_version)
+    event_streaming = get_event_streaming(event_version)
+    task_model = serializer(**task.to_dict())
+    event_streaming.task_updated(task_model)
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+def create_user(_, event: dict):
+    serializer = get_serializer(SerializerNames.USER, event['event_version'])
+    user_model = serializer(**event['data'])
+    User.objects.create(**user_model)

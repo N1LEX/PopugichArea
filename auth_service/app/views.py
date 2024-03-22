@@ -1,8 +1,8 @@
+import attrs
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import permissions, status
+from rest_framework import permissions
 from rest_framework.generics import GenericAPIView, CreateAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,7 +12,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from app.models import User
-from app.serializers import UserSerializer
+from app.serializers import SerializerNames, get_serializer
+from app.streaming import get_event_streaming, EventStreaming, EventVersions
 
 
 class SigninView(APIView):
@@ -24,13 +25,26 @@ class SigninView(APIView):
 
 class UserCreateView(CreateAPIView):
     permission_classes = [permissions.AllowAny]
-    serializer_class = UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        event_version = request.query_params.get('version', EventVersions.v1)
+        user_signup_serializer = get_serializer(SerializerNames.USER_SIGNUP, event_version)
+        user_signup_model = user_signup_serializer(**request.data)
+        user = User(**attrs.asdict(user_signup_model))
+        user.set_password(user.password)
+        user.save()
+        event_streaming: EventStreaming = get_event_streaming(event_version)
+        event_streaming.user_created(user_signup_model)
+        return Response(data=attrs.asdict(user_signup_model, filter=attrs.filters.exclude('password')))
 
 
 class AuthenticateAppView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request: Request) -> Response:
+        refresh_token = request.data['refresh']
+        if refresh_token is None:
+            return Response(status=401)
         try:
             refresh = RefreshToken(request.data['refresh'], verify=True)
             return Response({
@@ -53,7 +67,7 @@ class TokenCreateView(views.TokenObtainPairView):
         except TokenError as e:
             raise InvalidToken(e.args[0])
 
-        response = HttpResponseRedirect(redirect_to='http://localhost:8002/task/')
+        response = HttpResponseRedirect(redirect_to='http://localhost:8002/')
         response.set_cookie(
             'access',
             serializer.validated_data['access'],

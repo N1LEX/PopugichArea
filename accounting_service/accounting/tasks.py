@@ -1,58 +1,134 @@
-from django.core.mail import send_mail
+from datetime import timedelta
 
-from accounting.models import User, Task, Account
+import attrs
+from accounting import models
+from accounting.models import User, Task, Account, BillingCycle
+from accounting.serializers import get_serializer, SerializerNames
+from accounting.streaming import get_event_streaming
 from accounting_service.celery import app
+from celery import shared_task
+from django.db import transaction
 
 
-@app.task
-def create_user(**user_data):
-    user = User.objects.create(
-        username=user_data['username'],
-        public_id=user_data['public_id'],
-        role=user_data['role'],
-        full_name=user_data['full_name'],
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@transaction.atomic
+def create_user(_, event):
+    user_model = get_serializer(SerializerNames.USER, event['event_version'])(data=event['data'])
+    user = User.objects.create(**attrs.asdict(user_model))
+    if user.role in (User.RoleChoices.ADMIN, User.RoleChoices.MANAGER):
+        Account.objects.create(user=user)
+        BillingCycle.new(user=user)
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@transaction.atomic
+def handle_created_task(_, event):
+    event_version = event['event_version']
+    task_model = get_serializer(SerializerNames.TASK, event_version)(data=event['data'])
+    task = Task.objects.create(**attrs.asdict(task_model))
+    if task.user:
+        transaction_serializer = get_serializer(SerializerNames.TRANSACTION, event_version)
+        transaction_model = transaction_serializer(
+            account_id=task.user.account_id,
+            billing_cycle_id=task.user.billing_cycle.id,
+            type=models.Transaction.TypeChoices.WITHDRAW,
+            credit=task.assigned_price,
+            purpose=f'Withdraw for a assigned task #{task.public_id}',
+        )
+        task.user.account.create_transaction(transaction_model)
+        event_streaming = get_event_streaming(event_version)
+        event_streaming.transaction_created(transaction_model)
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@transaction.atomic
+def handle_assigned_task(_, event):
+    event_version = event['event_version']
+
+    task_serializer = get_serializer(SerializerNames.TASK, event_version)(data=event['data'])
+    task_model = task_serializer(**event['data'])
+    task = Task.objects.get(public_id=task_model.public_id)
+    task.user_id = task_model.user_id
+    task.save()
+
+    transaction_serializer = get_serializer(SerializerNames.TRANSACTION, event_version)
+    transaction_model = transaction_serializer(
+        account_id=task.user.account_id,
+        billing_cycle_id=task.user.billing_cycle.id,
+        type=models.Transaction.TypeChoices.WITHDRAW,
+        credit=task.assigned_price,
+        purpose=f'Withdraw for a assigned task #{task.public_id}',
     )
-    Account.objects.create(user=user, balance=0)
-    return {'message': 'User created', 'public_id': str(user.public_id)}
+    task.user.account.create_transaction(transaction_model)
+    event_streaming = get_event_streaming(event_version)
+    event_streaming.transaction_created(transaction_model)
 
 
-@app.task
-def handle_assigned_task(**task_data):
-    user = User.objects.get(public_id=task_data['user_id'])
-    task, _ = Task.objects.get_or_create(
-        public_id=task_data['public_id'],
-        defaults={
-            'user': user,
-            'status': 'assigned',
-            'description': task_data['description'],
-            'date': task_data['date'],
-        }
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@transaction.atomic
+def handle_completed_task(_, event):
+    event_version = event['event_version']
+
+    serializer = get_serializer(SerializerNames.TASK, event_version)(data=event['data'])
+    task_model = serializer(**event['data'])
+    task = Task.objects.get(public_id=task_model.public_id)
+    task.status = Task.StatusChoices.COMPLETED
+    task.save()
+
+    transaction_serializer = get_serializer('Transaction', event_version)
+    transaction_model = transaction_serializer(
+        account_id=task.user.account_id,
+        billing_cycle_id=task.user.billing_cycle.id,
+        type=models.Transaction.TypeChoices.DEPOSIT,
+        credit=task.assigned_price,
+        purpose=f'Deposit for a completed task #{task.public_id}',
     )
-    task.handle_assigned()
-    return {'message': 'OK'}
+    task.user.account.create_transaction(transaction_model)
+    event_streaming = get_event_streaming(event_version)
+    event_streaming.transaction_created(transaction_model)
 
 
 @app.task
-def handle_completed_task(**task_data):
-    task = Task.objects.get(public_id=task_data['public_id'])
-    task.handle_completed()
-    return {'message': 'OK'}
+def close_billing_cycles(event_version: str):
+    for user in User.workers():
+        close_billing_cycle.delay(user.id, event_version)
 
 
-@app.task
-def payout_profits():
-    workers_with_profit = User.workers().filter(account__balance__gt=0).select_related('account')
-    for worker in workers_with_profit:
-        send_mail_profit.delay(worker.email, worker.account.balance)
-        worker.account.payout()
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@transaction.atomic
+def close_billing_cycle(_, user_id: int, event_version: str):
+    send_report = False
+    user = User.objects.get(id=user_id)
+    account = user.account
+    payment_amount = account.balance
+
+    if account.balance > 0:
+        send_report = True
+        transaction_serializer = get_serializer(SerializerNames.TRANSACTION, event_version)
+        transaction_model = transaction_serializer(
+            account_id=user.account_id,
+            billing_cycle_id=user.billing_cycle.id,
+            type=models.Transaction.TypeChoices.PAYMENT,
+            credit=payment_amount,
+            purpose=f'Payout for completed tasks',
+        )
+        account.create_transaction(transaction_model)
+        event_streaming = get_event_streaming(event_version)
+        event_streaming.transaction_created(transaction_model)
+
+    user.billing_cycle.close()
+    next_cycle_date = user.billing_cycle.end_date + timedelta(days=1)
+    BillingCycle.new(user=user, start=next_cycle_date, end=next_cycle_date)
+
+    if send_report:
+        send_payout_report.delay(user.email, payment_amount)
 
 
-@app.task
-def send_mail_profit(email, amount):
-    send_mail(
-        subject="Выплата за выполненные задачи",
-        message=amount,
-        from_email="accounting@popug.inc",
-        recipient_list=[email],
-        fail_silently=False,
-    )
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 7, 'countdown': 10})
+def send_payout_report(_, email, amount):
+    return {
+        'from': 'accounting@popug.inc',
+        'to': email,
+        'subject': 'Payout for completed tasks',
+        'message': amount
+    }
