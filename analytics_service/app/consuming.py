@@ -33,7 +33,7 @@ class KafkaConsumer:
     }
 
     def __init__(self):
-        self._consumer = Consumer({'bootstrap.servers': 'broker:29092', 'group.id': 'analytics'})
+        self._consumer = Consumer({'bootstrap.servers': 'kafka:9092', 'group.id': 'analytics'})
         self._consumer.subscribe([Topics.values])
 
     def consume(self):

@@ -84,4 +84,4 @@ DJOSER = {
     }
 }
 
-PRODUCER = Producer({'bootstrap.servers': 'broker:29092'})
+PRODUCER = Producer({'bootstrap.servers': 'kafka:9092'})

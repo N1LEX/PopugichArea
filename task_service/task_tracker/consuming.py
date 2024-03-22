@@ -19,7 +19,7 @@ EVENT_HANDLERS = {
 class KafkaConsumer:
 
     def __init__(self):
-        self._consumer = Consumer({'bootstrap.servers': 'broker:29092', 'group.id': 'task-tracker'})
+        self._consumer = Consumer({'bootstrap.servers': 'kafka:9092', 'group.id': 'task-tracker'})
         self._consumer.subscribe([Topics.values])
 
     def consume(self):

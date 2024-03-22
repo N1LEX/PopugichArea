@@ -51,8 +51,8 @@ class Task(models.Model):
     public_id = models.UUIDField()
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
     description = models.CharField(max_length=255)
-    assigned_price = models.PositiveSmallIntegerField(default=random_price)
-    completed_price = models.PositiveSmallIntegerField(default=random_price)
+    assigned_price = models.PositiveSmallIntegerField()
+    completed_price = models.PositiveSmallIntegerField()
     status = models.CharField(max_length=40)
     date = models.DateField()
 

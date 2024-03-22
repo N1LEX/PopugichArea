@@ -9,8 +9,7 @@ services:
     ports:
       - "8001:8000"
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
 
   task:
     build: .
@@ -21,8 +20,7 @@ services:
     ports:
       - "8002:8000"
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
 
   accounting:
     build: .
@@ -33,8 +31,7 @@ services:
     ports:
       - "8003:8000"
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
 
   analytics:
     build: .
@@ -45,42 +42,35 @@ services:
     ports:
       - "8004:8000"
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    ports:
-      - "2181:2181"
+  kafka:
+    image: bitnami/kafka
+    command: "mkdir -p /bitnami/kafka"
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:2181"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      - KAFKA_CFG_BROKER_ID=1
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_KRAFT_CLUSTER_ID=r4zt_wrqTRuT7W2NJsB_GA
+      - BITNAMI_DEBUG=yes
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
 
-  broker:
-    image: confluentinc/cp-kafka:latest
+  kafka-ui:
+    image: 'provectuslabs/kafka-ui:latest'
     ports:
-      - "29092:29092"
-      - "9092:9092"
-      - "9101:9101"
+      - "8080:8080"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9092"]
-      interval: 2s
-      timeout: 10s
-      retries: 15
+      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_NAME=r4zt_wrqTRuT7W2NJsB_GA
     depends_on:
-      - zookeeper
-      - redis
+      - kafka
 
   redis:
     restart: on-failure
@@ -94,8 +84,7 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: 'task_service.settings'
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
     volumes:
       - ./task_service:/popug_area/task_service
 
@@ -107,8 +96,7 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
     volumes:
       - ./accounting_service:/popug_area/accounting_service
 
@@ -120,8 +108,7 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
     volumes:
       - ./accounting_service:/popug_area/accounting_service
 
@@ -133,8 +120,7 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: 'analytic_service.settings'
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
     volumes:
       - ./analytics_service:/popug_area/analytics_service
 
@@ -146,8 +132,7 @@ services:
     volumes:
       - ./task_service:/task_service
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
 
   accounting_consumer:
     build: .
@@ -157,8 +142,7 @@ services:
     volumes:
       - ./accounting_service:/accounting_service
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
 
   analytics_consumer:
     build: .
@@ -168,5 +152,4 @@ services:
     volumes:
       - ./analytics_service:/analytics_service
     depends_on:
-      broker:
-        condition: service_healthy
+      - kafka
