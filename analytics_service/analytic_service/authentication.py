@@ -3,7 +3,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework_simplejwt import authentication
 
-from analytics_service.app.models import User
+from analytics_app.models import User
 
 
 class Authentication(authentication.JWTStatelessUserAuthentication):

@@ -103,9 +103,9 @@ services:
     restart: on-failure
     build: .
     working_dir: /popug_area/task_service
-    command: bash -c "celery -A task_service worker --loglevel=INFO"
-    environment:
-      DJANGO_SETTINGS_MODULE: 'task_service.settings'
+    command: bash -c "celery -A task_service worker --loglevel=DEBUG -E"
+#    environment:
+#      DJANGO_SETTINGS_MODULE: 'task_service.settings'
     volumes:
       - ./task_service:/popug_area/task_service
     depends_on:
@@ -117,8 +117,8 @@ services:
     build: .
     working_dir: /popug_area/accounting_service
     command: bash -c "celery -A accounting_service worker -P solo --loglevel=INFO"
-    environment:
-      DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
+#    environment:
+#      DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
     volumes:
       - ./accounting_service:/popug_area/accounting_service
     depends_on:
@@ -130,8 +130,8 @@ services:
     build: .
     working_dir: /popug_area/accounting_service
     command: bash -c "celery -A accounting_service beat"
-    environment:
-      DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
+#    environment:
+#      DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
     volumes:
       - ./accounting_service:/popug_area/accounting_service
     depends_on:

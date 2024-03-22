@@ -14,7 +14,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'app.apps.AuthAppConfig',
+    'auth_app.apps.AuthAppConfig',
     'rest_framework',
     'djoser',
 ]

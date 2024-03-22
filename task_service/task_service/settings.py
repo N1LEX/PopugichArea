@@ -12,7 +12,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'task_tracker.apps.TaskTrackerConfig',
+    'task_app.apps.TaskAppConfig',
     'rest_framework',
 ]
 MIDDLEWARE = [
@@ -59,7 +59,7 @@ REST_FRAMEWORK = {
         'task_service.authentication.Authentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ),
 }
 

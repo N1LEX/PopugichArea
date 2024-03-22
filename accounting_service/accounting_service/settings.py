@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'accounting.apps.AccountingConfig',
+    'accounting_app.apps.AccountingAppConfig',
     'rest_framework',
 ]
 
@@ -128,7 +128,7 @@ REST_FRAMEWORK = {
         'accounting_service.authentication.Authentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'accounting_app.permissions.IsAuthenticated',
     ),
 }
 
