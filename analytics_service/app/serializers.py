@@ -78,7 +78,7 @@ class MostExpensiveTaskRequest(serializers.ModelSerializer):
     start_date: str = attrs.field(validator=validators.DatetimeValidator)
     end_date: str = attrs.field(validator=validators.DatetimeValidator)
     version: str = attrs.field(
-        default=EventVersions,
+        default=EventVersions.v1,
         validator=attrs.validators.in_([EventVersions.values]),
     )
 

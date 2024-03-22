@@ -45,32 +45,48 @@ services:
       - kafka
 
   kafka:
-    image: bitnami/kafka
-    command: "mkdir -p /bitnami/kafka"
+    image: confluentinc/confluent-local:latest
+    restart: on-failure
+    ports:
+      - "8082:8082"
+      - "9092:9092"
+      - "9101:9101"
     environment:
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      - KAFKA_ENABLE_KRAFT=yes
-      - KAFKA_CFG_PROCESS_ROLES=broker,controller
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      - KAFKA_CFG_BROKER_ID=1
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_KRAFT_CLUSTER_ID=r4zt_wrqTRuT7W2NJsB_GA
-      - BITNAMI_DEBUG=yes
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://localhost:9092'
+    healthcheck:
+      test: [ "CMD", "nc", "-vz", "localhost", "9092" ]
+      interval: 2s
+      timeout: 10s
+      retries: 15
+
+  init-kafka:
+    image: confluentinc/confluent-local:latest
+    restart: on-failure
+    command: >
+      bash -c "
+      kafka-topics --bootstrap-server kafka:29092 --list
+      && echo -e 'Creating kafka topics'
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic user-stream --replication-factor 1 --partitions 1
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic account-stream --replication-factor 1 --partitions 1
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic transaction-stream --replication-factor 1 --partitions 1
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic task-lifecycle --replication-factor 1 --partitions 1
+      && echo -e 'Successfully created the following topics:'
+      && kafka-topics --bootstrap-server kafka:29092 --list
+      "
 
   kafka-ui:
-    image: 'provectuslabs/kafka-ui:latest'
+    image: provectuslabs/kafka-ui:latest
     ports:
-      - "8080:8080"
+      - "9999:8080"
     environment:
-      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
-      - KAFKA_CLUSTERS_0_NAME=r4zt_wrqTRuT7W2NJsB_GA
+      DYNAMIC_CONFIG_ENABLED: true
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   redis:
     restart: on-failure
@@ -83,8 +99,6 @@ services:
     command: bash -c "celery -A task_service worker --loglevel=INFO"
     environment:
       DJANGO_SETTINGS_MODULE: 'task_service.settings'
-    depends_on:
-      - kafka
     volumes:
       - ./task_service:/popug_area/task_service
 
@@ -95,8 +109,6 @@ services:
     command: bash -c "celery -A accounting_service worker -P solo --loglevel=INFO"
     environment:
       DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
-    depends_on:
-      - kafka
     volumes:
       - ./accounting_service:/popug_area/accounting_service
 
@@ -107,8 +119,6 @@ services:
     command: bash -c "celery -A accounting_service beat"
     environment:
       DJANGO_SETTINGS_MODULE: 'accounting_service.settings'
-    depends_on:
-      - kafka
     volumes:
       - ./accounting_service:/popug_area/accounting_service
 
@@ -119,8 +129,6 @@ services:
     command: bash -c "celery -A analytic_service worker --loglevel=INFO"
     environment:
       DJANGO_SETTINGS_MODULE: 'analytic_service.settings'
-    depends_on:
-      - kafka
     volumes:
       - ./analytics_service:/popug_area/analytics_service
 

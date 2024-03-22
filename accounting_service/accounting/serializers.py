@@ -1,12 +1,12 @@
 import random
 from typing import List
+from uuid import uuid4
 
 import attrs
-from django.db.models import TextChoices
-
-from accounting.streaming import EventVersions
 from accounting import validators
-
+from accounting.streaming import EventVersions
+from django.db.models import TextChoices
+from django.utils.timezone import now
 
 
 @attrs.define(kw_only=True)
@@ -29,8 +29,8 @@ class TaskV1:
     description: str = attrs.field(validator=attrs.validators.instance_of(str))
     status: str = attrs.field(validator=attrs.validators.instance_of(str))
     date: str = attrs.field(validator=validators.DatetimeValidator)
-    assigned_price: int = attrs.field(default=random_price())
-    completed_price: int = attrs.field(default=random_price())
+    assigned_price: int = attrs.field(default=attrs.Factory(random_price))
+    completed_price: int = attrs.field(default=attrs.Factory(random_price))
 
 
 @attrs.define(kw_only=True)
@@ -42,14 +42,14 @@ class AccountV1:
 
 @attrs.define(kw_only=True)
 class TransactionV1:
-    public_id: str = attrs.field(converter=str)
+    public_id: str = attrs.field(converter=str, default=attrs.Factory(uuid4))
     account_id: str = attrs.field(converter=str)
     billing_cycle_id: str = attrs.field(converter=str)
     type: str = attrs.field()
     debit: int = attrs.field(default=0)
     credit: int = attrs.field(default=0)
     purpose: str = attrs.field()
-    datetime: str = attrs.field()
+    datetime: str = attrs.field(default=attrs.Factory(lambda: now().isoformat()))
 
     display_amount: int = attrs.field(default=0)
 

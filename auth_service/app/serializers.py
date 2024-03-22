@@ -8,7 +8,7 @@ from app.streaming import EventVersions
 
 @attrs.define(kw_only=True)
 class UserV1:
-    public_id: str = attrs.field(converter=str, default=uuid4())
+    public_id: str = attrs.field(converter=str, default=attrs.Factory(uuid4))
     username: str = attrs.field(validator=attrs.validators.instance_of(str))
     full_name: str = attrs.field(default=None)
     role: str = attrs.field(validator=attrs.validators.instance_of(str))

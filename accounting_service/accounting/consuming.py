@@ -28,13 +28,13 @@ logger = logging.getLogger(__name__)
 class KafkaConsumer:
 
     def __init__(self):
-        self._consumer = Consumer({'bootstrap.servers': 'kafka:9092', 'group.id': 'accounting'})
-        self._consumer.subscribe([Topics.values])
+        self.consumer = Consumer({'bootstrap.servers': 'kafka:29092', 'group.id': 'accounting'})
+        self.consumer.subscribe([Topics.values])
 
     def consume(self):
         try:
             while True:
-                msg: Message = self._consumer.poll(1)
+                msg: Message = self.consumer.poll(1)
                 if msg is None:
                     continue
                 if msg.error():

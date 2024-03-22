@@ -2,7 +2,6 @@ from uuid import uuid4
 
 import attrs
 from django.db.models import TextChoices
-
 from task_tracker import validators
 
 
@@ -17,7 +16,7 @@ class UserV1:
 
 @attrs.define(kw_only=True)
 class TaskV1:
-    public_id: str = attrs.field(default=uuid4(), converter=str)
+    public_id: str = attrs.field(converter=str, default=attrs.Factory(uuid4))
     user_id: str = attrs.field(converter=str)
     description: str = attrs.field()
     status: str = attrs.field()

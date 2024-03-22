@@ -42,6 +42,9 @@ class AuthenticateAppView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request: Request) -> Response:
+        refresh_token = request.data['refresh']
+        if refresh_token is None:
+            return Response(status=401)
         try:
             refresh = RefreshToken(request.data['refresh'], verify=True)
             return Response({
@@ -64,7 +67,7 @@ class TokenCreateView(views.TokenObtainPairView):
         except TokenError as e:
             raise InvalidToken(e.args[0])
 
-        response = HttpResponseRedirect(redirect_to='http://localhost:8002/task-tracker/')
+        response = HttpResponseRedirect(redirect_to='http://localhost:8002/')
         response.set_cookie(
             'access',
             serializer.validated_data['access'],

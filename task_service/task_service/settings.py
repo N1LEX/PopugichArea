@@ -63,4 +63,4 @@ REST_FRAMEWORK = {
     ),
 }
 
-producer = Producer({'bootstrap.servers': 'kafka:9092'})
+producer = Producer({'bootstrap.servers': 'kafka:29092'})

@@ -28,8 +28,8 @@ class Event:
     event_version: str = attrs.field()
     event_name: str = attrs.field()
     data: typing.Union[typing.List, typing.Dict] = attrs.field()
-    event_id: str = attrs.field(default=uuid4(), converter=str)
-    event_time: str = attrs.field(default=now(), converter=str)
+    event_id: str = attrs.field(converter=str, default=attrs.Factory(uuid4))
+    event_time: str = attrs.field(default=attrs.Factory(lambda: now().isoformat()))
     producer: str = attrs.field(default='accounting-service')
 
 

@@ -19,13 +19,13 @@ EVENT_HANDLERS = {
 class KafkaConsumer:
 
     def __init__(self):
-        self._consumer = Consumer({'bootstrap.servers': 'kafka:9092', 'group.id': 'task-tracker'})
-        self._consumer.subscribe([Topics.values])
+        self.consumer = Consumer({'bootstrap.servers': 'kafka:29092', 'group.id': 'task-tracker'})
+        self.consumer.subscribe([Topics.values])
 
     def consume(self):
         try:
             while True:
-                msg: Message = self._consumer.poll(1)
+                msg: Message = self.consumer.poll(1)
                 if msg is None:
                     continue
                 if msg.error():
@@ -36,4 +36,4 @@ class KafkaConsumer:
                 handler = EVENT_HANDLERS[topic][key]
                 handler.delay(event)
         finally:
-            self._consumer.close()
+            self.consumer.close()
