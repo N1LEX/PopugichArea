@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-htu0#5l42cj1%czt1b93t%bi%m^q2q39kk#m@kjm5mls435pvx'
 DEBUG = True
 ALLOWED_HOSTS = ['*']
-AUTH_USER_MODEL = 'app.User'
+AUTH_USER_MODEL = 'auth_app.User'
 LOGIN_URL = '/admin/login/'
 INSTALLED_APPS = [
     'django.contrib.auth',
@@ -79,8 +79,8 @@ SIMPLE_JWT = {
 
 DJOSER = {
     'SERIALIZERS': {
-        'current_user': 'app.serializers.UserSerializer',
-        'user': 'app.serializers.UserSerializer',
+        'current_user': 'auth_app.serializers.UserSerializer',
+        'user': 'auth_app.serializers.UserSerializer',
     }
 }
 

@@ -1,6 +1,6 @@
 from django.core.management import BaseCommand
 
-from task_tracker.consuming import KafkaConsumer
+from task_app.consuming import KafkaConsumer
 
 
 class Command(BaseCommand):

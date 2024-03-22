@@ -142,9 +142,7 @@ services:
     restart: on-failure
     build: .
     working_dir: /popug_area/analytics_service
-    command: bash -c "celery -A analytic_service worker --loglevel=INFO"
-    environment:
-      DJANGO_SETTINGS_MODULE: 'analytic_service.settings'
+    command: bash -c "celery -A analytics_service worker --loglevel=INFO"
     volumes:
       - ./analytics_service:/popug_area/analytics_service
     depends_on:

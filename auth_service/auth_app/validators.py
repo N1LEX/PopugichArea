@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 
-def uuid_validator(value: str):
+def uuid_validator(instance, attribute, value):
     """
     Raises:
         ValueError: string is not uuid
@@ -10,7 +10,7 @@ def uuid_validator(value: str):
     UUID(value)
 
 
-def datetime_validator(value: str):
+def datetime_validator(instance, attribute, value):
     """
     Raises:
         ValueError: Invalid isoformat string

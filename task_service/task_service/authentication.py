@@ -3,7 +3,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework_simplejwt import authentication
 
-from task_tracker.models import User
+from task_app.models import User
 
 
 class Authentication(authentication.JWTStatelessUserAuthentication):

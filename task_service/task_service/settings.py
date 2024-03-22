@@ -37,7 +37,7 @@ TEMPLATES = [
         },
     },
 ]
-ROOT_URLCONF = 'task_tracker.urls'
+ROOT_URLCONF = 'task_app.urls'
 WSGI_APPLICATION = 'task_service.wsgi.application'
 DATABASES = {
     'default': {
@@ -59,7 +59,7 @@ REST_FRAMEWORK = {
         'task_service.authentication.Authentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+        'task_service.permissions.IsAuthenticated',
     ),
 }
 

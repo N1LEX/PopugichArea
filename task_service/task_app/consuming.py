@@ -32,11 +32,9 @@ class KafkaConsumer:
                     if msg.error():
                         # TODO requeue msg back to topic?
                         print(msg.error().code())
-                    print(msg.topic(), msg.key(), msg.value())
                     topic, key, event = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
                     print(topic, key, event)
                     handler = EVENT_HANDLERS[topic][key]
-                    print(handler)
                     handler.delay(event)
                 except Exception as e:
                     print(str(e))

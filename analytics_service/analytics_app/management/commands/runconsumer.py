@@ -1,6 +1,6 @@
 from django.core.management import BaseCommand
 
-from app.consuming import KafkaConsumer
+from analytics_app.consuming import KafkaConsumer
 
 
 class Command(BaseCommand):

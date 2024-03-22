@@ -128,7 +128,7 @@ REST_FRAMEWORK = {
         'accounting_service.authentication.Authentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'accounting_app.permissions.IsAuthenticated',
+        'accounting_service.permissions.IsAuthenticated',
     ),
 }
 
