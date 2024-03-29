@@ -1,0 +1,10 @@
+django
+django-redis==5.2.0
+djangorestframework
+djangorestframework-simplejwt
+djoser~=2.2.2
+confluent-kafka
+celery
+attrs
+python-dotenv
+psycopg2-binary

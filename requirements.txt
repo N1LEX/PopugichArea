@@ -1,6 +1,8 @@
 django
+django-redis==5.2.0
 djangorestframework
 djangorestframework-simplejwt
 djoser~=2.2.2
 confluent-kafka
-celery[redis]
+celery==5.2.3
+attrs

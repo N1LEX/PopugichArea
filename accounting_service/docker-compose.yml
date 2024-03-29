@@ -1,0 +1,86 @@
+version: '3.8'
+services:
+  accounting_web:
+    restart: on-failure
+    build: .
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/service
+    ports:
+      - "8003:8000"
+    depends_on:
+      accounting_rabbitmq:
+        condition: service_healthy
+      accounting_db:
+        condition: service_healthy
+
+  accounting_celery:
+    restart: on-failure
+    build: .
+    command: celery -A accounting_service worker --loglevel=INFO
+    environment:
+      - DJANGO_SETTINGS_MODULE=accounting_service.settings
+    volumes:
+      - .:/service
+    depends_on:
+      accounting_rabbitmq:
+        condition: service_healthy
+      accounting_db:
+        condition: service_healthy
+
+  accounting_celery_beat:
+    restart: on-failure
+    build: .
+    command: celery -A accounting_service worker -B --loglevel=INFO
+    environment:
+      - DJANGO_SETTINGS_MODULE=accounting_service.settings
+    volumes:
+      - .:/service
+    depends_on:
+      accounting_rabbitmq:
+        condition: service_healthy
+      accounting_db:
+        condition: service_healthy
+
+  accounting_consumer:
+    build: .
+    restart: on-failure
+    command: python manage.py runconsumer
+    volumes:
+      - .:/service
+    depends_on:
+      accounting_db:
+        condition: service_healthy
+
+  accounting_db:
+    image: postgres:14-alpine
+    restart: on-failure
+    environment:
+      POSTGRES_USER: accounting_user
+      POSTGRES_PASSWORD: accounting_user_password
+      POSTGRES_DB: accounting_db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+  accounting_rabbitmq:
+    restart: on-failure
+    image: rabbitmq:management
+    volumes:
+      - ./rabbitmq/data/:/var/lib/rabbitmq/
+      - ./rabbitmq/log/:/var/log/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+
+networks:
+  default:
+      name: popug-network
+      external: true
