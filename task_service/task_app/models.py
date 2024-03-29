@@ -33,20 +33,18 @@ class Task(models.Model):
         ASSIGNED = 'assigned', 'assigned'
         COMPLETED = 'completed', 'completed'
 
-    public_id = models.UUIDField(primary_key=True, default=uuid4,)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
+    public_id = models.UUIDField(default=uuid4)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks', null=True)
     description = models.CharField(max_length=255)
     status = models.CharField(max_length=9, choices=StatusChoices.choices, default=StatusChoices.ASSIGNED)
-    date = models.DateField(auto_now_add=True, editable=False)
+    date = models.DateField(auto_now_add=True)
 
-    def to_dict(self):
-        return {
-            'public_id': self.public_id,
-            'user': self.user_id,
-            'description': self.description,
-            'status': self.status,
-            'date': self.date
-        }
+    @classmethod
+    def create(cls, task_model) -> 'Task':
+        return cls.objects.create(
+            user=random.choice(User.workers()),
+            description=task_model.description,
+        )
 
     @staticmethod
     def assigned() -> QuerySet:
@@ -59,8 +57,3 @@ class Task(models.Model):
     def complete(self):
         self.status = Task.StatusChoices.COMPLETED
         self.save()
-
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            self.user = random.choice(User.workers())
-        super().save(*args, **kwargs)

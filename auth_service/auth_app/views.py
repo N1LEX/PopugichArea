@@ -1,7 +1,7 @@
 import attrs
 from auth_app.models import User
 from auth_app.serializers import SerializerNames, get_serializer
-from auth_app.streaming import get_event_streaming, EventStreaming, EventVersions
+from auth_app.streaming import EventVersions, EventStreaming
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -29,12 +29,10 @@ class UserCreateView(CreateAPIView):
         event_version = request.query_params.get('version', EventVersions.v1)
         user_signup_serializer = get_serializer(SerializerNames.USER_SIGNUP, event_version)
         user_signup_model = user_signup_serializer(**request.data)
-        user = User(**attrs.asdict(user_signup_model))
-        user.set_password(user.password)
-        user.save()
-        event_streaming: EventStreaming = get_event_streaming(event_version)
+        User.create(attrs.asdict(user_signup_model))
+        event_streaming = EventStreaming(event_version)
         event_streaming.user_created(user_signup_model)
-        return Response(data=attrs.asdict(user_signup_model, filter=attrs.filters.exclude('password')))
+        return Response(attrs.asdict(user_signup_model, filter=attrs.filters.exclude('password')))
 
 
 class AuthenticateAppView(GenericAPIView):

@@ -1,27 +1,36 @@
 import json
+import logging
 
 from confluent_kafka import Consumer, Message
 from django.db.models import TextChoices
 
 from analytics_app import tasks
+from analytics_service import settings
+
+logger = logging.getLogger(__name__)
 
 
 class Topics(TextChoices):
     USER_STREAM = 'user-stream'
     TASK_LIFECYCLE = 'task-lifecycle'
+    TASK_STREAM = 'task-stream'
     TRANSACTION_STREAM = 'transaction-stream'
     ACCOUNT_STREAM = 'account-stream'
 
 
 class KafkaConsumer:
+
     EVENT_HANDLERS = {
         Topics.USER_STREAM: {
             'created': tasks.create_user,
         },
         Topics.TASK_LIFECYCLE: {
             'created': tasks.create_task,
-            'assigned': tasks.update_task,
-            'completed': tasks.update_task,
+            'assigned': tasks.update_task_flow,
+            'completed': tasks.update_task_flow,
+        },
+        Topics.TASK_STREAM: {
+            'updated': tasks.add_task_price,
         },
         Topics.ACCOUNT_STREAM: {
             'created': tasks.create_account,
@@ -33,7 +42,11 @@ class KafkaConsumer:
     }
 
     def __init__(self):
-        self.consumer = Consumer({'bootstrap.servers': 'kafka:29092', 'group.id': 'analytics'})
+        self.consumer = Consumer({
+            'bootstrap.servers': settings.KAFKA_SERVERS,
+            'group.id': settings.KAFKA_GROUP,
+            'auto.offset.reset': 'earliest',
+        })
         self.consumer.subscribe(Topics.values)
 
     def consume(self):
@@ -44,13 +57,12 @@ class KafkaConsumer:
                     if msg is None:
                         continue
                     if msg.error():
-                        # TODO requeue msg back to topic?
-                        print(msg.error().code())
+                        logger.error(msg.error().str())
                     topic, key, event = msg.topic(), msg.key().decode('utf-8'), json.loads(msg.value())
-                    print(topic, key, event)
+                    logger.info(topic, key, event)
                     handler = self.EVENT_HANDLERS[topic][key]
                     handler.delay(event)
                 except Exception as e:
-                    print(str(e))
+                    logger.exception(e)
         finally:
             self.consumer.close()

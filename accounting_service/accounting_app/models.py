@@ -2,7 +2,7 @@ from datetime import date
 from uuid import uuid4
 
 import attrs
-from django.db import models, transaction
+from django.db import models
 from django.db.models import QuerySet
 from django.utils.functional import cached_property
 
@@ -44,9 +44,9 @@ class User(models.Model):
 class Task(models.Model):
 
     class StatusChoices(models.TextChoices):
-        OPENED = 'opened', 'opened'
+        CREATED = 'created', 'created'
+        ASSIGNED = 'assigned', 'assigned'
         COMPLETED = 'completed', 'completed'
-        REASSIGNED = 'reassigned', 'reassigned'
 
     public_id = models.UUIDField()
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
@@ -59,12 +59,25 @@ class Task(models.Model):
     class Meta:
         ordering = ['-id']
 
+    @classmethod
+    def create(cls, task_model) -> tuple['Task', bool]:
+        return cls.objects.get_or_create(
+            public_id=task_model.public_id,
+            user=User.objects.get(public_id=task_model.public_id),
+            description=task_model.description,
+            assigned_price=task_model.assigned_price,
+            completed_price=task_model.completed_price,
+            status=task_model.status,
+            date=task_model.date,
+        )
+
 
 class BillingCycle(models.Model):
     class StatusChoices(models.TextChoices):
         OPENED = 'opened', 'opened'
         CLOSED = 'closed', 'closed'
 
+    public_id = models.UUIDField(default=uuid4)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='billing_cycles')
     start_date = models.DateField(default=date.today)
     end_date = models.DateField(default=date.today)
@@ -84,17 +97,16 @@ class Account(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     balance = models.IntegerField(default=0)
 
-    @transaction.atomic
     def create_transaction(self, transaction_model) -> 'Transaction':
-        _transaction = Transaction.objects.create(
+        transaction = Transaction.objects.create(
             **attrs.asdict(transaction_model, filter=attrs.filters.exclude('display_amount'))
         )
-        if _transaction.type in (_transaction.TypeChoices.WITHDRAW, _transaction.TypeChoices.PAYMENT):
-            self.balance += -_transaction.credit
+        if transaction.type in (transaction.TypeChoices.WITHDRAW, transaction.TypeChoices.PAYMENT):
+            self.balance += -transaction.credit
         else:
-            self.balance -= _transaction.debit
+            self.balance -= transaction.debit
         self.save()
-        return _transaction
+        return transaction
 
 
 class Transaction(models.Model):

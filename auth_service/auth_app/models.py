@@ -18,7 +18,9 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=RoleChoices.choices, default=RoleChoices.DEVELOPER)
     full_name = models.CharField(max_length=40, null=True)
 
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            self.set_password(self.password)
-        super().save(*args, **kwargs)
+    @classmethod
+    def create(cls, user_data: dict) -> 'User':
+        user = cls(**user_data)
+        user.set_password(user.password)
+        user.save()
+        return user

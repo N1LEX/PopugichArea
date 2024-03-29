@@ -1,9 +1,11 @@
+import os
 from datetime import timedelta
 from pathlib import Path
 
-from confluent_kafka import Producer
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = 'django-insecure-htu0#5l42cj1%czt1b93t%bi%m^q2q39kk#m@kjm5mls435pvx'
 DEBUG = True
 ALLOWED_HOSTS = ['*']
@@ -45,8 +47,12 @@ ROOT_URLCONF = 'auth_service.urls'
 WSGI_APPLICATION = 'auth_service.wsgi.application'
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 AUTH_PASSWORD_VALIDATORS = [
@@ -84,4 +90,4 @@ DJOSER = {
     }
 }
 
-PRODUCER = Producer({'bootstrap.servers': 'kafka:29092'})
+KAFKA_SERVERS = os.getenv('KAFKA_SERVERS')

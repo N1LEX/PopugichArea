@@ -1,0 +1,56 @@
+version: '3.8'
+services:
+  kafka:
+    image: confluentinc/confluent-local:latest
+    restart: on-failure
+    ports:
+      - "8082:8082"
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://localhost:9092'
+    volumes:
+      - ./data:/var/lib/kafka/data
+    healthcheck:
+      test: kafka-topics --bootstrap-server kafka:29092 --list
+      interval: 15s
+      timeout: 15s
+      retries: 5
+
+  init-kafka:
+    image: confluentinc/confluent-local:latest
+    command: >
+      bash -c "
+      kafka-topics --bootstrap-server kafka:29092 --list
+      && echo -e 'Creating kafka topics'
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic user-stream --replication-factor 1 --partitions 1
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic account-stream --replication-factor 1 --partitions 1
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic transaction-stream --replication-factor 1 --partitions 1
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic task-lifecycle --replication-factor 1 --partitions 1
+      && kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic task-stream --replication-factor 1 --partitions 1
+      && echo -e 'Successfully created the following topics:'
+      && kafka-topics --bootstrap-server kafka:29092 --list
+      "
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  kafka-ui:
+    restart: on-failure
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "9999:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: true
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+networks:
+  default:
+      name: popug-network
+      external: true

@@ -1,4 +1,5 @@
 import attrs
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,7 +8,7 @@ from rest_framework.viewsets import ViewSet
 from task_app import permissions
 from task_app.models import Task
 from task_app.serializers import get_serializer, SerializerNames
-from task_app.streaming import EventVersions
+from task_app.streaming import EventVersions, EventStreaming
 from task_app.tasks import assign_tasks, task_completed
 
 
@@ -25,18 +26,26 @@ class TaskTrackerView(ViewSet):
 
         /task/{id}/complete: отметить задачу завершенной
     """
-    queryset = Task.objects.all()
-    # permission_classes = [IsManager]
+    queryset = Task.objects.select_related('user')
+
+    def create(self, request, *args, **kwargs):
+        version = self.request.query_params.get('version', EventVersions.v1)
+        serializer = get_serializer(SerializerNames.TASK, version)
+        task_model = serializer(description=request.data.get('description'))
+        task = Task.create(task_model)
+        created_model = serializer.from_object(task)
+        event_streaming = EventStreaming(version)
+        event_streaming.task_created(created_model)
+        return Response(attrs.asdict(created_model), status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
         version = self.request.query_params.get('version', EventVersions.v1)
         serializer = get_serializer(SerializerNames.TASK, version)
-        tasks = [attrs.asdict(serializer(**task)) for task in self.queryset.values()]
-        return Response(data=tasks)
+        tasks = [attrs.asdict(serializer.from_object(task)) for task in self.queryset]
+        return Response(tasks)
 
     def get_serializer_class(self):
         version = self.request.query_params.get('version', EventVersions.v1)
-        print(self.queryset)
         return get_serializer(SerializerNames.TASK, version)
 
     @action(detail=False, name="Assign Tasks", permission_classes=[permissions.IsAdminOrManager])
@@ -48,11 +57,11 @@ class TaskTrackerView(ViewSet):
     @action(detail=True,  name="Complete Task", permission_classes=[permissions.IsAssigned])
     def complete(self, request: Request, pk=None):
         self.get_object().complete()
-        event_version = request.query_params.get('event_version', EventVersions.v1)
-        task_completed.delay(event_version)
+        version = request.query_params.get('version', EventVersions.v1)
+        task_completed.delay(version)
         return Response({'message': 'OK'})
 
     @action(detail=False, name="My Tasks")
     def my(self, request: Request):
         self.queryset = self.queryset.filter(user=self.request.user, status=Task.StatusChoices.ASSIGNED)
-        return super().list(request)
+        return self.list(request)

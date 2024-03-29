@@ -9,23 +9,16 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
-from confluent_kafka import Producer
+from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-cbz$b@-b#q9@f6_1t@350!l*1gkx4f8z(sk3z7ij1%_vzr=&=='
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
 
 # Application definition
@@ -77,8 +70,12 @@ WSGI_APPLICATION = 'accounting_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
@@ -121,7 +118,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_URL = 'http://auth:8000/authenticate/'
+AUTH_URL = os.getenv('AUTH_SERVICE_URL')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -132,4 +129,11 @@ REST_FRAMEWORK = {
     ),
 }
 
-PRODUCER = Producer({'bootstrap.servers': 'kafka:29092'})
+KAFKA_SERVERS = os.getenv('KAFKA_SERVERS')
+KAFKA_GROUP = os.getenv('KAFKA_GROUP')
+KAFKA_CONSUMER_CONFIG = {
+    'bootstrap.servers': KAFKA_SERVERS,
+    'group.id': KAFKA_GROUP
+}
+
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL')

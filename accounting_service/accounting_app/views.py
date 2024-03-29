@@ -1,8 +1,6 @@
 from datetime import date
 
 from accounting_app.models import Account, Task, Transaction
-from accounting_app.serializers import get_serializer, SerializerNames
-from accounting_app.streaming import EventVersions
 from django.db.models import Sum, F
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,37 +13,36 @@ class AccountingView(APIView):
     Остальным доступна только информация о текущем балансе и лог операций
     """
     def get(self, request, *kwargs):
-        serializer = self.get_serializer_class()
-        queryset = self.get_queryset()
-        return Response(data=serializer(**queryset))
-
-    def get_serializer_class(self):
-        version = self.request.query_params.get('version', EventVersions.v1)
         if self.request.user.is_manager:
-            return get_serializer(SerializerNames.MANAGEMENT_EARNING_STATS, version)
-        return get_serializer(SerializerNames.ACCOUNT_STATE, version)
+            return Response(self._management_queryset())
+        return Response(self._worker_queryset())
 
     def get_queryset(self):
         if self.request.user.is_manager:
-            sum_annotation = Sum('assigned_price', default=0) + Sum('completed_price', default=0)
+            return self._management_queryset()
+        return self._worker_queryset()
 
-            current_date_stats = Task.objects\
-                .filter(date=date.today)\
-                .annotate(sum=sum_annotation)\
-                .values('sum', 'date')
+    def _management_queryset(self):
+        sum_annotation = Sum('assigned_price', default=0) + Sum('completed_price', default=0)
 
-            # Group by date
-            history_earnings_stats = Task.objects \
-                .values('date') \
-                .annotate(sum=sum_annotation) \
-                .order_by('-date') \
-                .values('sum', 'date')
+        current_date_stats = Task.objects \
+            .filter(date=date.today()) \
+            .annotate(sum=sum_annotation) \
+            .values('sum', 'date')
 
-            return {
-                'current_date': current_date_stats,
-                'history': history_earnings_stats,
-            }
+        # Group by date
+        history_stats = Task.objects \
+            .values('date') \
+            .annotate(sum=sum_annotation) \
+            .order_by('-date') \
+            .values('sum', 'date')
 
+        return {
+            'today': list(current_date_stats),
+            'history': list(history_stats),
+        }
+
+    def _worker_queryset(self):
         transactions = Transaction.objects \
             .select_related('account') \
             .filter(account__user=self.request.user) \

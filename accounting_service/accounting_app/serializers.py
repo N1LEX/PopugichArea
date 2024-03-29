@@ -1,9 +1,9 @@
 import random
-from typing import List
 from uuid import uuid4
 
 import attrs
 from accounting_app import validators
+from accounting_app.models import Account, Task
 from accounting_app.streaming import EventVersions
 from django.db.models import TextChoices
 from django.utils.timezone import now
@@ -32,12 +32,28 @@ class TaskV1:
     assigned_price: int = attrs.field(default=attrs.Factory(random_price))
     completed_price: int = attrs.field(default=attrs.Factory(random_price))
 
+    @classmethod
+    def from_object(cls, task: Task) -> 'TaskV1':
+        return cls(
+            public_id=task.public_id,
+            user_id=task.user.public_id,
+            description=task.description,
+            status=task.status,
+            date=task.date,
+            assigned_price=task.assigned_price,
+            completed_price=task.completed_price,
+        )
+
 
 @attrs.define(kw_only=True)
 class AccountV1:
     public_id: str = attrs.field(converter=str)
     user_id: str = attrs.field(converter=str)
     balance: int = attrs.field(default=0)
+
+    @classmethod
+    def from_object(cls, account: Account):
+        return cls(public_id=account.public_id, user_id=account.user.public_id, balance=account.balance)
 
 
 @attrs.define(kw_only=True)
@@ -49,35 +65,9 @@ class TransactionV1:
     debit: int = attrs.field(default=0)
     credit: int = attrs.field(default=0)
     purpose: str = attrs.field()
-    datetime: str = attrs.field(default=attrs.Factory(lambda: now().isoformat()))
+    datetime: str = attrs.field(default=attrs.Factory(lambda: now().isoformat(timespec='seconds')))
 
     display_amount: int = attrs.field(default=0)
-
-    @classmethod
-    def from_list(cls, data: list[dict]) -> List['TransactionV1']:
-        return [cls(**transaction) for transaction in data]
-
-
-@attrs.define(kw_only=True)
-class AccountStateV1:
-    balance: int = attrs.field()
-    transactions: List[TransactionV1] = attrs.field(converter=TransactionV1.from_list)
-
-
-@attrs.define(kw_only=True)
-class ManagementEarningV1:
-    sum: int = attrs.field()
-    date: str = attrs.field(converter=str)
-
-    @classmethod
-    def from_list(cls, data: list[dict]) -> List['ManagementEarningV1']:
-        return [cls(**earning) for earning in data]
-
-
-@attrs.define(kw_only=True)
-class ManagementEarningStatsV1:
-    current_date: ManagementEarningV1 = attrs.field(converter=ManagementEarningV1)
-    history: List[ManagementEarningV1] = attrs.field(converter=ManagementEarningV1.from_list)
 
 
 class SerializerNames(TextChoices):
@@ -85,8 +75,6 @@ class SerializerNames(TextChoices):
     TASK = 'Task'
     TRANSACTION = 'Transaction'
     ACCOUNT = 'Account'
-    ACCOUNT_STATE = 'AccountState'
-    MANAGEMENT_EARNING_STATS = 'ManagementEarningStats'
 
 
 SERIALIZERS = {
@@ -95,8 +83,6 @@ SERIALIZERS = {
         SerializerNames.TASK: TaskV1,
         SerializerNames.TRANSACTION: TransactionV1,
         SerializerNames.ACCOUNT: AccountV1,
-        SerializerNames.ACCOUNT_STATE: AccountStateV1,
-        SerializerNames.MANAGEMENT_EARNING_STATS: ManagementEarningStatsV1,
     }
 }
 

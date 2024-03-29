@@ -1,9 +1,11 @@
+from datetime import date
+
 import attrs
+from celery import shared_task
 from django.db import transaction
 
 from analytics_app.models import Account, User, Transaction, Task, Stats
 from analytics_app.serializers import get_serializer, SerializerNames
-from celery import shared_task
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
@@ -17,7 +19,8 @@ def create_user(_, event):
 def create_account(_, event):
     serializer = get_serializer(SerializerNames.ACCOUNT, event['event_version'])
     account_model = serializer(**event['data'])
-    Account.objects.create(**attrs.asdict(account_model))
+    user = User.objects.get(public_id=account_model.user_id)
+    Account.objects.create(public_id=account_model.public_id, user=user)
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
@@ -39,16 +42,33 @@ def create_transaction(_, event):
 def create_task(_, event):
     serializer = get_serializer(SerializerNames.TASK, event['event_version'])
     task_model = serializer(**event['data'])
-    task = Task.objects.create(**attrs.asdict(task_model))
-    if task.status == Task.StatusChoices.COMPLETED:
-        Stats.update_stats(task)
+    Task.create(task_model)
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
 @transaction.atomic
-def update_task(_, event):
+def update_task_flow(_, event):
     serializer = get_serializer(SerializerNames.TASK, event['event_version'])
     task_model = serializer(**event['data'])
-    task = Task.objects.filter(public_id=task_model.public_id).update(**attrs.asdict(task_model))
-    if task.status == Task.StatusChoices.COMPLETED:
-        Stats.update_stats(task)
+    task = Task.objects.filter(public_id=task_model.public_id).first()
+    if task:
+        task.update_flow(task_model)
+    else:
+        create_task.delay(event)
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 1})
+@transaction.atomic
+def add_task_price(_, event):
+    serializer = get_serializer(SerializerNames.TASK, event['event_version'])
+    task_model = serializer(**event['data'])
+    task = Task.objects.filter(public_id=task_model.public_id).first()
+    if not task:
+        task = Task.create(task_model)
+    task.add_task_price(task_model)
+
+
+@shared_task
+def update_stats(_):
+    stats, _ = Stats.objects.get_or_create(date=date.today())
+    stats.update()

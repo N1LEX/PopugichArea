@@ -1,6 +1,8 @@
+import datetime
 from datetime import date
 
 from django.db import models
+from django.db.models import Max, Sum
 
 
 class User(models.Model):
@@ -44,6 +46,36 @@ class Task(models.Model):
     class Meta:
         ordering = ['-id']
 
+    @classmethod
+    def create(cls, task_model) -> 'Task':
+        return Task.objects.get_or_create(
+            public_id=task_model.public_id,
+            user=User.objects.get(public_id=task_model.user_id),
+            description=task_model.description,
+            assigned_price=task_model.assigned_price,
+            completed_price=task_model.completed_price,
+            date=task_model.date,
+            status=task_model.status,
+        )
+
+    def update_flow(self, task_model):
+        user = User.objects.get(public_id=task_model.user_id)
+        self.user = user
+        self.status = task_model.status
+        self.save()
+
+    def add_task_price(self, task_model):
+        self.assigned_price = task_model.assigned_price
+        self.completed_price = task_model.completed_price
+        self.save()
+
+    @classmethod
+    def get_most_expensive_task(cls, start_date: date, end_date: date) -> 'Task':
+        return cls.objects.filter(
+            date__range=(start_date, end_date),
+            completed_price=Max('completed_price'),
+        ).first()
+
 
 class Account(models.Model):
     public_id = models.UUIDField()
@@ -82,20 +114,13 @@ class Stats(models.Model):
     most_expensive_task = models.ForeignKey(Task, on_delete=models.PROTECT, null=True)
     date = models.DateField(default=date.today)
 
-    @classmethod
-    def update_stats(cls, task: Task):
-        day_stats, created = cls.objects.get_or_create(date=task.date)
-
-        if created:
-            day_stats.management_earning += task.assigned_price
-            day_stats.most_expensive_task = task
-
-        if task.user.account.balance < 0:
-            day_stats.negative_balances += 1
-
-        if task.status == task.StatusChoices.COMPLETED:
-            day_stats.management_earning -= task.completed_price
-            if task.completed_price > day_stats.most_expensive_task.completed_price:
-                day_stats.most_expensive_task = task
-
-        day_stats.save()
+    def update_stats(self):
+        self.management_earning = Transaction.objects.filter(
+            datetime__range=(
+                datetime.datetime.combine(date=self.date, time=datetime.time.min),
+                datetime.datetime.combine(date=self.date, time=datetime.time.max),
+            )
+        ).aggregate(earning=Sum('credit', default=0) - Sum('debit', default=0))['earning']
+        self.most_expensive_task = Task.get_most_expensive_task(start_date=self.date, end_date=self.date)
+        self.negative_balances = Account.objects.filter(balance__lt=0).count()
+        self.save()

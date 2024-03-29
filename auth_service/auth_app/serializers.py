@@ -1,7 +1,8 @@
+from uuid import uuid4
+
 import attrs
 from auth_app.streaming import EventVersions
 from django.db.models import TextChoices
-from uuid import uuid4
 
 
 @attrs.define(kw_only=True)
@@ -24,9 +25,9 @@ class SerializerNames(TextChoices):
 
 
 SERIALIZERS = {
-    EventVersions.v1.value: {
-        SerializerNames.USER.value: UserV1,
-        SerializerNames.USER_SIGNUP.value: UserSignUpV1,
+    EventVersions.v1: {
+        SerializerNames.USER: UserV1,
+        SerializerNames.USER_SIGNUP: UserSignUpV1,
     }
 }
 

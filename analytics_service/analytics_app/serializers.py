@@ -1,10 +1,11 @@
-from typing import List
+from typing import List, Optional
 
 import attrs
-from django.db.models import TextChoices
+from django.db.models import TextChoices, QuerySet
 from rest_framework import serializers
 
 from analytics_app import validators
+from analytics_app.models import Stats, Task
 from analytics_app.streaming import EventVersions
 
 
@@ -12,7 +13,7 @@ from analytics_app.streaming import EventVersions
 class UserV1:
     public_id: str = attrs.field(validator=validators.uuid_validator, converter=str)
     username: str = attrs.field(validator=attrs.validators.instance_of(str))
-    full_name: str = attrs.field(default=None)
+    full_name: Optional[str] = attrs.field()
     role: str = attrs.field(validator=attrs.validators.instance_of(str))
     email: str = attrs.field(validator=attrs.validators.instance_of(str))
 
@@ -24,12 +25,20 @@ class TaskV1:
     description: str = attrs.field(validator=attrs.validators.instance_of(str))
     status: str = attrs.field(validator=attrs.validators.instance_of(str))
     date: str = attrs.field(validator=validators.datetime_validator)
-    assigned_price: int = attrs.field(init=False, validator=attrs.validators.instance_of(int))
-    completed_price: int = attrs.field(init=None, validator=attrs.validators.instance_of(int))
+    assigned_price: int = attrs.field(default=None)
+    completed_price: int = attrs.field(default=None)
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'TaskV1':
-        return cls(**data)
+    def from_object(cls, task: Task) -> 'TaskV1':
+        return cls(
+            public_id=task.public_id,
+            user_id=task.user.public_id,
+            description=task.description,
+            status=task.status,
+            date=task.date,
+            assigned_price=task.assigned_price,
+            completed_price=task.completed_price,
+        )
 
 
 @attrs.define(kw_only=True)
@@ -58,20 +67,24 @@ class TransactionV1:
 
 
 @attrs.define
-class DayStatsV1:
+class StatsV1:
     management_earning: int = attrs.field()
     negative_balances: int = attrs.field()
     date: str = attrs.field(converter=str)
-    most_expensive_task: TaskV1 = attrs.field(converter=TaskV1.from_dict)
+    most_expensive_task: TaskV1 = attrs.field(converter=TaskV1.from_object)
 
     @classmethod
-    def from_list(cls, data: list[dict]) -> List['DayStatsV1']:
-        return [cls(**stats) for stats in data]
+    def from_object(cls, stats: Stats) -> 'StatsV1':
+        return cls(
+            management_earning=stats.management_earning,
+            negative_balances=stats.negative_balances,
+            date=stats.date,
+            most_expensive_task=stats.most_expensive_task,
+        )
 
-
-@attrs.define
-class AllStatsV1:
-    data: List[DayStatsV1] = attrs.field(converter=DayStatsV1.from_list)
+    @classmethod
+    def from_queryset(cls, queryset: QuerySet[Stats]) -> List['StatsV1']:
+        return [cls.from_object(stats) for stats in queryset]
 
 
 class MostExpensiveTaskRequest(serializers.ModelSerializer):
@@ -88,8 +101,7 @@ class SerializerNames(TextChoices):
     TASK = 'Task'
     TRANSACTION = 'Transaction'
     ACCOUNT = 'Account'
-    DayStats = 'DayStats'
-    AllStats = 'AllStats'
+    Stats = 'Stats'
 
 
 SERIALIZERS = {
@@ -98,8 +110,7 @@ SERIALIZERS = {
         SerializerNames.TASK: TaskV1,
         SerializerNames.TRANSACTION: TransactionV1,
         SerializerNames.ACCOUNT: AccountV1,
-        SerializerNames.DayStats: DayStatsV1,
-        SerializerNames.AllStats: AllStatsV1,
+        SerializerNames.Stats: StatsV1,
     }
 }
 

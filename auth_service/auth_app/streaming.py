@@ -3,6 +3,7 @@ import typing
 from uuid import uuid4
 
 import attrs
+from confluent_kafka import Producer
 from django.conf import settings
 from django.db.models import TextChoices
 from django.utils.timezone import now
@@ -26,35 +27,25 @@ class Event:
     event_name: str = attrs.field()
     data: typing.Union[typing.List, typing.Dict] = attrs.field()
     event_id: str = attrs.field(converter=str, default=attrs.Factory(uuid4))
-    event_time: str = attrs.field(default=attrs.Factory(lambda: now().isoformat()))
+    event_time: str = attrs.field(default=attrs.Factory(lambda: now().isoformat(timespec='seconds')))
     producer: str = attrs.field(default='auth-service')
 
 
 class EventStreaming:
 
-    def __init__(self, version: str = EventVersions.v1.value):
+    def __init__(self, version: str = EventVersions.v1):
         self.version = version
+        self.producer = Producer({'bootstrap.servers': settings.KAFKA_SERVERS})
 
     def user_created(self, user):
-        event = self.get_event(
-            EventNames.USER_CREATED.value,
-            attrs.asdict(user, filter=attrs.filters.exclude('password'))
+        event = Event(
+            event_name=EventNames.USER_CREATED,
+            event_version=self.version,
+            data=attrs.asdict(user, filter=attrs.filters.exclude('password'))
         )
-        settings.PRODUCER.produce(
-            topic=Topics.USER_STREAM.value,
+        self.producer.produce(
+            topic=Topics.USER_STREAM,
             key='created',
             value=json.dumps(attrs.asdict(event)).encode('utf-8'),
         )
-        settings.PRODUCER.flush()
-
-    def get_event(self, name: str, data: dict):
-        return Event(event_name=name, event_version=self.version, data=data)
-
-
-EVENT_STREAMING_VERSIONS = {
-    EventVersions.v1: EventStreaming(version=EventVersions.v1.value)
-}
-
-
-def get_event_streaming(event_version: str):
-    return EVENT_STREAMING_VERSIONS[event_version]
+        self.producer.poll()
