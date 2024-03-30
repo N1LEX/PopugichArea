@@ -6,3 +6,4 @@ djoser~=2.2.2
 confluent-kafka
 celery==5.2.3
 attrs
+dotenv

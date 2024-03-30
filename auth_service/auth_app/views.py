@@ -22,7 +22,7 @@ class SigninView(APIView):
         return render(request, 'signin.html')
 
 
-class UserCreateView(CreateAPIView):
+class UserCreateView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
