@@ -8,6 +8,9 @@ services:
       - .:/service
     ports:
       - "8002:8000"
+    depends_on:
+      task_tracker_db:
+        condition: service_healthy
 
   task_tracker_db:
     image: postgres:14-alpine
@@ -35,6 +38,9 @@ services:
     depends_on:
       task_tracker_rabbitmq:
         condition: service_healthy
+      task_tracker_db:
+        condition: service_healthy
+
 
   task_tracker_consumer:
     build: .
@@ -42,6 +48,9 @@ services:
     command: python manage.py runconsumer
     volumes:
       - .:/service
+    depends_on:
+      task_tracker_db:
+        condition: service_healthy
 
   task_tracker_rabbitmq:
     restart: on-failure

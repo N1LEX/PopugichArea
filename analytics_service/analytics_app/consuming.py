@@ -26,8 +26,8 @@ class KafkaConsumer:
         },
         Topics.TASK_LIFECYCLE: {
             'created': tasks.create_task,
-            'assigned': tasks.update_task_flow,
-            'completed': tasks.update_task_flow,
+            'assigned': tasks.update_task_lifecycle,
+            'completed': tasks.update_task_lifecycle,
         },
         Topics.TASK_STREAM: {
             'updated': tasks.add_task_price,
@@ -37,7 +37,9 @@ class KafkaConsumer:
             'updated': tasks.update_account,
         },
         Topics.TRANSACTION_STREAM: {
-            'created': tasks.create_transaction,
+            'deposit': tasks.create_transaction,
+            'withdraw': tasks.create_transaction,
+            'payment': tasks.create_transaction,
         }
     }
 

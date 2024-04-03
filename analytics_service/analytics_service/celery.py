@@ -11,6 +11,6 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'update-stats-every-30-seconds': {
         'task': 'analytics_app.tasks.update_stats',
-        'schedule': 30.0,
+        'schedule': 60.0,
     },
 }

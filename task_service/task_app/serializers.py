@@ -6,6 +6,7 @@ import attrs
 from django.db.models import TextChoices
 from task_app import validators
 from task_app.models import Task, User
+from task_app.streaming import EventVersions
 
 
 @attrs.define(kw_only=True)
@@ -36,18 +37,34 @@ class TaskV1:
         )
 
 
+@attrs.define(kw_only=True)
+class TaskDashboardViewV1(TaskV1):
+    username: str = attrs.field()
+    link: str = attrs.field()
+
+    @classmethod
+    def from_object(cls, task: Task):
+        return cls(
+            public_id=task.public_id,
+            user_id=task.user.public_id,
+            description=task.description,
+            status=task.status,
+            date=task.date,
+            username=task.user.username,
+            link=task.link,
+        )
+
+
 class SerializerNames(TextChoices):
     USER = 'User'
     TASK = 'Task'
+    TASK_DASHBOARD = 'TaskDashboard'
 
 
 SERIALIZERS = {
-    'v1': {
+    EventVersions.v1: {
         SerializerNames.USER: UserV1,
         SerializerNames.TASK: TaskV1,
+        SerializerNames.TASK_DASHBOARD: TaskDashboardViewV1,
     }
 }
-
-
-def get_serializer(model_name: str, event_version: str):
-    return SERIALIZERS[event_version][model_name]

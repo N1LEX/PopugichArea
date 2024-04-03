@@ -67,8 +67,6 @@ class TransactionV1:
     purpose: str = attrs.field()
     datetime: str = attrs.field(default=attrs.Factory(lambda: now().isoformat(timespec='seconds')))
 
-    display_amount: int = attrs.field(default=0)
-
 
 class SerializerNames(TextChoices):
     USER = 'User'
@@ -85,7 +83,3 @@ SERIALIZERS = {
         SerializerNames.ACCOUNT: AccountV1,
     }
 }
-
-
-def get_serializer(model_name: str, event_version: str):
-    return SERIALIZERS[event_version][model_name]

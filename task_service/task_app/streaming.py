@@ -8,6 +8,8 @@ from django.conf import settings
 from django.db.models import TextChoices
 from django.utils.timezone import now
 
+from task_app.models import Task
+
 
 class EventVersions(TextChoices):
     v1 = 'v1'
@@ -47,7 +49,7 @@ class EventStreaming:
         )
         self.producer.produce(
             topic=Topics.TASK_LIFECYCLE,
-            key=task.status,
+            key=Task.StatusChoices.CREATED,
             value=json.dumps(attrs.asdict(event)).encode('utf-8'),
         )
         self.producer.poll()
@@ -61,7 +63,7 @@ class EventStreaming:
         self.producer.produce(
             topic=Topics.TASK_LIFECYCLE,
             key=task.status,
-            value=json.dumps(event).encode('utf-8'),
+            value=json.dumps(attrs.asdict(event)).encode('utf-8'),
         )
         self.producer.poll()
 
@@ -74,6 +76,6 @@ class EventStreaming:
         self.producer.produce(
             topic=Topics.TASK_LIFECYCLE,
             key=task.status,
-            value=json.dumps(event).encode('utf-8'),
+            value=json.dumps(attrs.asdict(event)).encode('utf-8'),
         )
         self.producer.poll()

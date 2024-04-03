@@ -24,21 +24,22 @@ class TaskV1:
     user_id: str = attrs.field(validator=validators.uuid_validator, converter=str)
     description: str = attrs.field(validator=attrs.validators.instance_of(str))
     status: str = attrs.field(validator=attrs.validators.instance_of(str))
-    date: str = attrs.field(validator=validators.datetime_validator)
+    date: str = attrs.field(validator=validators.datetime_validator, converter=str)
     assigned_price: int = attrs.field(default=None)
     completed_price: int = attrs.field(default=None)
 
     @classmethod
-    def from_object(cls, task: Task) -> 'TaskV1':
-        return cls(
-            public_id=task.public_id,
-            user_id=task.user.public_id,
-            description=task.description,
-            status=task.status,
-            date=task.date,
-            assigned_price=task.assigned_price,
-            completed_price=task.completed_price,
-        )
+    def from_object(cls, task: Task) -> Optional['TaskV1']:
+        if task:
+            return cls(
+                public_id=task.public_id,
+                user_id=task.user.public_id,
+                description=task.description,
+                status=task.status,
+                date=task.date,
+                assigned_price=task.assigned_price,
+                completed_price=task.completed_price,
+            )
 
 
 @attrs.define(kw_only=True)
@@ -71,7 +72,7 @@ class StatsV1:
     management_earning: int = attrs.field()
     negative_balances: int = attrs.field()
     date: str = attrs.field(converter=str)
-    most_expensive_task: TaskV1 = attrs.field(converter=TaskV1.from_object)
+    most_expensive_task: Optional[TaskV1] = attrs.field(converter=TaskV1.from_object)
 
     @classmethod
     def from_object(cls, stats: Stats) -> 'StatsV1':
@@ -101,7 +102,7 @@ class SerializerNames(TextChoices):
     TASK = 'Task'
     TRANSACTION = 'Transaction'
     ACCOUNT = 'Account'
-    Stats = 'Stats'
+    STATS = 'Stats'
 
 
 SERIALIZERS = {
@@ -110,10 +111,6 @@ SERIALIZERS = {
         SerializerNames.TASK: TaskV1,
         SerializerNames.TRANSACTION: TransactionV1,
         SerializerNames.ACCOUNT: AccountV1,
-        SerializerNames.Stats: StatsV1,
+        SerializerNames.STATS: StatsV1,
     }
 }
-
-
-def get_serializer(model_name: str, event_version: str):
-    return SERIALIZERS[event_version][model_name]

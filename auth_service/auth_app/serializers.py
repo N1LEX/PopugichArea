@@ -13,6 +13,16 @@ class UserV1:
     role: str = attrs.field(validator=attrs.validators.instance_of(str))
     email: str = attrs.field(validator=attrs.validators.instance_of(str))
 
+    @classmethod
+    def from_object(cls, user_model) -> 'UserV1':
+        return cls(
+            public_id=user_model.public_id,
+            username=user_model.username,
+            full_name=user_model.full_name,
+            role=user_model.role,
+            email=user_model.email,
+        )
+
 
 @attrs.define(kw_only=True)
 class UserSignUpV1(UserV1):
@@ -30,7 +40,3 @@ SERIALIZERS = {
         SerializerNames.USER_SIGNUP: UserSignUpV1,
     }
 }
-
-
-def get_serializer(model_name: str, event_version: str):
-    return SERIALIZERS[event_version][model_name]

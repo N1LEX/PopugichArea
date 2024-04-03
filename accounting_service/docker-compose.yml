@@ -9,8 +9,6 @@ services:
     ports:
       - "8003:8000"
     depends_on:
-      accounting_rabbitmq:
-        condition: service_healthy
       accounting_db:
         condition: service_healthy
 

@@ -39,6 +39,10 @@ class Task(models.Model):
     status = models.CharField(max_length=9, choices=StatusChoices.choices, default=StatusChoices.ASSIGNED)
     date = models.DateField(auto_now_add=True)
 
+    @property
+    def link(self):
+        return f'http://192.168.0.103:8002/{self.id}/'
+
     @classmethod
     def create(cls, task_model) -> 'Task':
         return cls.objects.create(

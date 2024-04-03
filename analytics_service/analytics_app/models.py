@@ -2,7 +2,7 @@ import datetime
 from datetime import date
 
 from django.db import models
-from django.db.models import Max, Sum
+from django.db.models import Sum
 
 
 class User(models.Model):
@@ -22,11 +22,18 @@ class User(models.Model):
 
     @property
     def is_manager(self) -> bool:
-        return self.role in (self.RoleChoices.ADMIN, self.RoleChoices.MANAGER)
+        return self.role in (
+            self.RoleChoices.ADMIN,
+            self.RoleChoices.MANAGER,
+        )
 
     @property
     def is_worker(self) -> bool:
-        return self.role in (self.RoleChoices.TESTER, self.RoleChoices.DEVELOPER, self.RoleChoices.ACCOUNTANT)
+        return self.role in (
+            self.RoleChoices.TESTER,
+            self.RoleChoices.DEVELOPER,
+            self.RoleChoices.ACCOUNTANT,
+        )
 
 
 class Task(models.Model):
@@ -58,23 +65,16 @@ class Task(models.Model):
             status=task_model.status,
         )
 
-    def update_flow(self, task_model):
+    def update_lifecycle(self, task_model):
         user = User.objects.get(public_id=task_model.user_id)
         self.user = user
         self.status = task_model.status
         self.save()
 
-    def add_task_price(self, task_model):
+    def add_price(self, task_model):
         self.assigned_price = task_model.assigned_price
         self.completed_price = task_model.completed_price
         self.save()
-
-    @classmethod
-    def get_most_expensive_task(cls, start_date: date, end_date: date) -> 'Task':
-        return cls.objects.filter(
-            date__range=(start_date, end_date),
-            completed_price=Max('completed_price'),
-        ).first()
 
 
 class Account(models.Model):
@@ -98,6 +98,18 @@ class Transaction(models.Model):
     purpose = models.CharField(max_length=100)
     datetime = models.DateTimeField(auto_now_add=True)
 
+    @classmethod
+    def create(cls, transaction_model) -> 'Transaction':
+        return Transaction.objects.create(
+            public_id=transaction_model.public_id,
+            account=Account.objects.get(public_id=transaction_model.account_id),
+            type=transaction_model.type,
+            debit=transaction_model.debit,
+            credit=transaction_model.credit,
+            purpose=transaction_model.purpose,
+            datetime=transaction_model.datetime,
+        )
+
     class Meta:
         ordering = ['-id']
 
@@ -114,13 +126,20 @@ class Stats(models.Model):
     most_expensive_task = models.ForeignKey(Task, on_delete=models.PROTECT, null=True)
     date = models.DateField(default=date.today)
 
-    def update_stats(self):
+    def update(self):
         self.management_earning = Transaction.objects.filter(
             datetime__range=(
                 datetime.datetime.combine(date=self.date, time=datetime.time.min),
                 datetime.datetime.combine(date=self.date, time=datetime.time.max),
             )
         ).aggregate(earning=Sum('credit', default=0) - Sum('debit', default=0))['earning']
-        self.most_expensive_task = Task.get_most_expensive_task(start_date=self.date, end_date=self.date)
+        self.most_expensive_task = self.get_most_expensive_task(start_date=self.date, end_date=self.date)
         self.negative_balances = Account.objects.filter(balance__lt=0).count()
         self.save()
+
+    @classmethod
+    def get_most_expensive_task(cls, start_date: date, end_date: date) -> 'Task':
+        return Task.objects\
+            .filter(date__range=(start_date, end_date))\
+            .order_by('-completed_price')\
+            .first()

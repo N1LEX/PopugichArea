@@ -1,7 +1,6 @@
 from datetime import date
 from uuid import uuid4
 
-import attrs
 from django.db import models
 from django.db.models import QuerySet
 from django.utils.functional import cached_property
@@ -60,10 +59,10 @@ class Task(models.Model):
         ordering = ['-id']
 
     @classmethod
-    def create(cls, task_model) -> tuple['Task', bool]:
-        return cls.objects.get_or_create(
+    def create(cls, task_model) -> 'Task':
+        return cls.objects.create(
             public_id=task_model.public_id,
-            user=User.objects.get(public_id=task_model.public_id),
+            user=User.objects.get(public_id=task_model.user_id),
             description=task_model.description,
             assigned_price=task_model.assigned_price,
             completed_price=task_model.completed_price,
@@ -99,7 +98,14 @@ class Account(models.Model):
 
     def create_transaction(self, transaction_model) -> 'Transaction':
         transaction = Transaction.objects.create(
-            **attrs.asdict(transaction_model, filter=attrs.filters.exclude('display_amount'))
+            public_id=transaction_model.public_id,
+            account=self,
+            billing_cycle=self.user.billing_cycle,
+            type=transaction_model.type,
+            debit=transaction_model.debit,
+            credit=transaction_model.credit,
+            purpose=transaction_model.purpose,
+            datetime=transaction_model.datetime,
         )
         if transaction.type in (transaction.TypeChoices.WITHDRAW, transaction.TypeChoices.PAYMENT):
             self.balance += -transaction.credit
@@ -126,9 +132,3 @@ class Transaction(models.Model):
 
     class Meta:
         ordering = ['-id']
-
-    @property
-    def display_amount(self) -> int:
-        if self.type == self.TypeChoices.WITHDRAW:
-            return -self.credit
-        return self.debit

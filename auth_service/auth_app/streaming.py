@@ -41,7 +41,7 @@ class EventStreaming:
         event = Event(
             event_name=EventNames.USER_CREATED,
             event_version=self.version,
-            data=attrs.asdict(user, filter=attrs.filters.exclude('password'))
+            data=attrs.asdict(user)
         )
         self.producer.produce(
             topic=Topics.USER_STREAM,
