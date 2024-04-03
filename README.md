@@ -1,4 +1,4 @@
-<h2>Run project</h2>
+<h2>Run Project</h2>
 
 > [!IMPORTANT]
 > Проект запускается через **docker-compose** </br>
@@ -26,7 +26,7 @@
 
 <hr>
 
-<h2>Таск трекер</h2>
+<h2>Таск Трекер</h2>
 
     task-tracker/
 
