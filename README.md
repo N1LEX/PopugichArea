@@ -83,4 +83,22 @@
 
 ![image](https://github.com/N1LEX/popug-tracker/assets/8479729/fe2445a7-cddf-4006-b36c-8545e507f755)
 
+<hr>
+
+<h2>Сертификат</h2>
+https://cert.tough-dev.school/6q5YpBciuWWjxg9yu3A8k3/
+
+<hr>
+
+<h2>Курс Асинхронная Архитектура </h2>
+https://tough-dev.school/architecture
+
+<hr>
+
+<h2>Школа Сильных Программистов</h2>
+https://tough-dev.school/
+
+<hr>
+
+</br></br>
 
