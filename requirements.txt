@@ -1,9 +1,0 @@
-django
-django-redis==5.2.0
-djangorestframework
-djangorestframework-simplejwt
-djoser~=2.2.2
-confluent-kafka
-celery==5.2.3
-attrs
-dotenv

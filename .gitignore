@@ -2,7 +2,7 @@
 /auth_service/.idea/
 /auth_service/.venv/
 /task_service/.idea/
-/auth_service/db.sqlite3
-/task_service/db.sqlite3
-/accounting_service/db.sqlite3
-/venv/
+/accounting_service/.idea/
+/accounting_service/.venv/
+/analytics_service/.idea/
+/analytics_service/.venv/
