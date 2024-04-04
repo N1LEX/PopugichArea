@@ -1,9 +1,9 @@
-from rest_framework import permissions
+from rest_framework.permissions import BasePermission
 
 from task_app.models import User
 
 
-class IsAdminOrManager(permissions.BasePermission):
+class IsAdminOrManager(BasePermission):
 
     def has_permission(self, request, view):
-        return request.user.role in (User.RoleChoices.ADMIN, User.RoleChoices.MANAGER)
+        return isinstance(request.user, User) and request.user.is_manager

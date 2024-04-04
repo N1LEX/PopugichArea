@@ -1,15 +1,11 @@
-import datetime
 from datetime import date
 
-from django.db.models.functions import Coalesce, TruncDate
-
-from accounting_app.models import Account, Task, Transaction
 from django.db.models import Sum, F, Case, When, IntegerField, Value
+from django.db.models.functions import Coalesce, TruncDate
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounting_app.serializers import SERIALIZERS, SerializerNames
-from accounting_app.streaming import EventVersions
+from accounting_app.models import Transaction
 
 
 class AccountingView(APIView):

@@ -68,7 +68,7 @@ class TokenCreateView(views.TokenObtainPairView):
         except TokenError as e:
             raise InvalidToken(e.args[0])
 
-        response = HttpResponseRedirect(redirect_to='http://192.168.0.103:8002/')
+        response = HttpResponseRedirect(redirect_to=f'{settings.HOST}:{settings.TASK_PORT}')
         response.set_cookie(
             'access',
             serializer.validated_data['access'],

@@ -140,6 +140,6 @@ class Stats(models.Model):
     @classmethod
     def get_most_expensive_task(cls, start_date: date, end_date: date) -> 'Task':
         return Task.objects\
-            .filter(date__range=(start_date, end_date))\
+            .filter(status=Task.StatusChoices.COMPLETED, date__range=(start_date, end_date))\
             .order_by('-completed_price')\
             .first()

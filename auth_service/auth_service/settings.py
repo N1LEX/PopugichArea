@@ -9,6 +9,9 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = 'django-insecure-htu0#5l42cj1%czt1b93t%bi%m^q2q39kk#m@kjm5mls435pvx'
 DEBUG = True
 ALLOWED_HOSTS = ['*']
+HOST = os.getenv('HOST', 'localhost')
+PORT = os.getenv('PORT', '8001')
+TASK_PORT = os.getenv('TASK_PORT', '8002')
 AUTH_USER_MODEL = 'auth_app.User'
 LOGIN_URL = '/admin/login/'
 INSTALLED_APPS = [

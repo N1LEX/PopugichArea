@@ -2,7 +2,6 @@ from typing import List, Optional
 
 import attrs
 from django.db.models import TextChoices, QuerySet
-from rest_framework import serializers
 
 from analytics_app import validators
 from analytics_app.models import Stats, Task
@@ -88,13 +87,11 @@ class StatsV1:
         return [cls.from_object(stats) for stats in queryset]
 
 
-class MostExpensiveTaskRequest(serializers.ModelSerializer):
+@attrs.define
+class MostExpensiveTaskRequest:
     start_date: str = attrs.field(validator=validators.datetime_validator)
     end_date: str = attrs.field(validator=validators.datetime_validator)
-    version: str = attrs.field(
-        default=EventVersions.v1,
-        validator=attrs.validators.in_([EventVersions.values]),
-    )
+    version: str = attrs.field(validator=attrs.validators.in_(EventVersions.values))
 
 
 class SerializerNames(TextChoices):

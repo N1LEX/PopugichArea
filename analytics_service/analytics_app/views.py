@@ -29,7 +29,12 @@ class StatsView(ViewSet):
 
     @action(detail=False)
     def most_expensive_task(self, request: Request):
-        request_serializer = MostExpensiveTaskRequest(**request.data)
+        params = self.request.query_params
+        request_serializer = MostExpensiveTaskRequest(
+            start_date=params.get('start_date'),
+            end_date=params.get('end_date'),
+            version=params.get('version', EventVersions.v1),
+        )
         most_expensive_task = Stats.get_most_expensive_task(request_serializer.start_date, request_serializer.end_date)
         if most_expensive_task:
             task_serializer = SERIALIZERS[request_serializer.version][SerializerNames.TASK]

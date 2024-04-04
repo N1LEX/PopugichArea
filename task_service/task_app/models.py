@@ -22,6 +22,10 @@ class User(models.Model):
     def __str__(self):
         return self.username
 
+    @property
+    def is_manager(self) -> bool:
+        return self.role in (User.RoleChoices.MANAGER, User.RoleChoices.ADMIN)
+
     @staticmethod
     def workers() -> QuerySet:
         return User.objects.exclude(role__in=(User.RoleChoices.ADMIN, User.RoleChoices.MANAGER))

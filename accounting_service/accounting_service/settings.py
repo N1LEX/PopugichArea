@@ -19,6 +19,8 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = 'django-insecure-cbz$b@-b#q9@f6_1t@350!l*1gkx4f8z(sk3z7ij1%_vzr=&=='
 DEBUG = True
+HOST = os.getenv('HOST', 'localhost')
+PORT = os.getenv('PORT', '8003')
 ALLOWED_HOSTS = ['*']
 
 # Application definition
